@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../massage/screens/massage.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
@@ -82,7 +83,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             ),
           ),
           const SizedBox(height: 16),
-
           SizedBox(
             height: 40,
             child: ListView(
@@ -99,7 +99,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             ),
           ),
           const SizedBox(height: 16),
-
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -109,7 +108,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           ),
         ],
       ),
-
       bottomNavigationBar: Container(
         height: 90,
         padding: const EdgeInsets.only(bottom: 10),
@@ -134,7 +132,16 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     bool isSelected = _selectedIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
+      onTap: () {
+        setState(() => _selectedIndex = index);
+
+        if (index == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const MassageScreen()),
+          ).then((value) {});
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
