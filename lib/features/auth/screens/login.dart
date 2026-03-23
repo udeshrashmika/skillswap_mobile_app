@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'create_account.dart'; 
+import 'create_account.dart';
+import '../../marketplace/screens/marketplace_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -92,6 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 8),
                           TextField(
                             keyboardType: TextInputType.emailAddress,
+                            style: const TextStyle(color: Colors.black),
                             decoration: InputDecoration(
                               filled: true,
                               fillColor: Colors.white,
@@ -126,6 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 8),
                           TextField(
                             obscureText: !_isPasswordVisible,
+                            style: const TextStyle(color: Colors.black),
                             decoration: InputDecoration(
                               filled: true,
                               fillColor: Colors.white,
@@ -186,7 +189,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                   borderRadius: BorderRadius.circular(25),
                                 ),
                               ),
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const MarketplaceScreen(),
+                                  ),
+                                );
+                              },
                               child: const Text(
                                 "Sign In",
                                 style: TextStyle(
@@ -242,12 +253,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   borderRadius: BorderRadius.circular(25),
                                 ),
                               ),
-                              
+
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const CreateAccountScreen(),
+                                    builder: (context) =>
+                                        const CreateAccountScreen(),
                                   ),
                                 );
                               },
