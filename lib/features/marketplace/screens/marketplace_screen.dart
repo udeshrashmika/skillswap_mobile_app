@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../massage/screens/massage.dart';
+import '../../message/screens/message.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
@@ -138,8 +138,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         if (index == 3) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const MassageScreen()),
-          ).then((value) {});
+
+            MaterialPageRoute(builder: (context) => const MessageScreen()),
+          ).then((value) {
+            setState(() => _selectedIndex = 0);
+          });
         }
       },
       child: AnimatedContainer(

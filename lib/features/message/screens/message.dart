@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class MassageScreen extends StatefulWidget {
-  const MassageScreen({super.key});
+class MessageScreen extends StatefulWidget {
+  const MessageScreen({super.key});
 
   @override
-  State<MassageScreen> createState() => _MassageScreenState();
+  State<MessageScreen> createState() => _MessageScreenState();
 }
 
-class _MassageScreenState extends State<MassageScreen> {
+class _MessageScreenState extends State<MessageScreen> {
   int _selectedIndex = 3;
 
   @override
@@ -17,36 +17,36 @@ class _MassageScreenState extends State<MassageScreen> {
       backgroundColor: const Color(0xFF141416),
 
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70),
+        preferredSize: const Size.fromHeight(80),
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(
-            bottom: Radius.circular(15),
+            bottom: Radius.circular(24),
           ),
           child: AppBar(
-            backgroundColor: const Color(0xFF6F51A1),
+            backgroundColor: const Color(0xFF6A5AE0),
             elevation: 0,
             centerTitle: false,
             title: Padding(
-              padding: const EdgeInsets.only(top: 10.0, left: 8.0),
+              padding: const EdgeInsets.only(top: 10.0),
               child: Text(
                 "SKILLSWAP",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
                   letterSpacing: 0.5,
                 ),
               ),
             ),
             actions: [
               Padding(
-                padding: const EdgeInsets.only(top: 10.0, right: 16.0),
+                padding: const EdgeInsets.only(top: 10.0, right: 8.0),
                 child: IconButton(
                   onPressed: () {},
                   icon: const Icon(
-                    Icons.exit_to_app_rounded,
+                    Icons.logout_rounded,
                     color: Colors.white,
-                    size: 24,
+                    size: 28,
                   ),
                 ),
               ),
@@ -263,7 +263,11 @@ class _MassageScreenState extends State<MassageScreen> {
     bool isSelected = _selectedIndex == index;
     return GestureDetector(
       onTap: () {
-        setState(() => _selectedIndex = index);
+        if (index == 0) {
+          Navigator.pop(context);
+        } else {
+          setState(() => _selectedIndex = index);
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
