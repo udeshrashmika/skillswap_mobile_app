@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'create_account.dart'; 
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -241,7 +242,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                   borderRadius: BorderRadius.circular(25),
                                 ),
                               ),
-                              onPressed: () {},
+                              
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const CreateAccountScreen(),
+                                  ),
+                                );
+                              },
                               child: const Text(
                                 "Create account",
                                 style: TextStyle(
