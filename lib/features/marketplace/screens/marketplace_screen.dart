@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'explore_screen.dart';
-
-import 'explore_screen.dart';
+import '../../message/screens/message.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
@@ -101,6 +100,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             ),
           ),
           const SizedBox(height: 16),
+
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -110,6 +110,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           ),
         ],
       ),
+
       bottomNavigationBar: Container(
         height: 90,
         padding: const EdgeInsets.only(bottom: 10),
@@ -136,35 +137,17 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     return GestureDetector(
       onTap: () {
         setState(() => _selectedIndex = index);
-<<<<<<< HEAD
 
-=======
-<<<<<<< HEAD
-        
-        
->>>>>>> e055cac5ab60adf27d65995b015101935ccaff79
         if (index == 1) {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const ExploreScreen()),
-<<<<<<< HEAD
-          ).then((value) {
-            setState(() => _selectedIndex = 0);
-          });
-=======
-          );
-=======
-
-        if (index == 3) {
+          ).then((_) => setState(() => _selectedIndex = 0));
+        } else if (index == 3) {
           Navigator.push(
             context,
-
             MaterialPageRoute(builder: (context) => const MessageScreen()),
-          ).then((value) {
-            setState(() => _selectedIndex = 0);
-          });
->>>>>>> 4081f3125e0936af6f17953ce45489f4fe4b80b7
->>>>>>> e055cac5ab60adf27d65995b015101935ccaff79
+          ).then((_) => setState(() => _selectedIndex = 0));
         }
       },
       child: AnimatedContainer(
