@@ -83,7 +83,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             ),
           ),
           const SizedBox(height: 16),
-
           SizedBox(
             height: 40,
             child: ListView(
@@ -100,7 +99,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             ),
           ),
           const SizedBox(height: 16),
-
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -110,7 +108,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           ),
         ],
       ),
-
       bottomNavigationBar: Container(
         height: 90,
         padding: const EdgeInsets.only(bottom: 10),
@@ -137,6 +134,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     return GestureDetector(
       onTap: () {
         setState(() => _selectedIndex = index);
+<<<<<<< HEAD
         
         
         if (index == 1) {
@@ -144,6 +142,17 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             context,
             MaterialPageRoute(builder: (context) => const ExploreScreen()),
           );
+=======
+
+        if (index == 3) {
+          Navigator.push(
+            context,
+
+            MaterialPageRoute(builder: (context) => const MessageScreen()),
+          ).then((value) {
+            setState(() => _selectedIndex = 0);
+          });
+>>>>>>> 4081f3125e0936af6f17953ce45489f4fe4b80b7
         }
       },
       child: AnimatedContainer(
