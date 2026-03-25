@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'features/auth/screens/splash_screen.dart';
 
+
 void main() {
   runApp(const MyApp());
 }
@@ -25,7 +26,8 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF121217),
       ),
 
-      home: const SplashScreen(),
+        home: const SplashScreen(),
+   
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'explore_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
@@ -134,7 +135,17 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     bool isSelected = _selectedIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
+      onTap: () {
+        setState(() => _selectedIndex = index);
+        
+        
+        if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ExploreScreen()),
+          );
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
