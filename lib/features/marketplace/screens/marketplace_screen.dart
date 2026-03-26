@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'explore_screen.dart';
-import '../../message/screens/message_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
@@ -11,308 +9,263 @@ class MarketplaceScreen extends StatefulWidget {
 }
 
 class _MarketplaceScreenState extends State<MarketplaceScreen> {
-  int _selectedIndex = 0;
-
-  final Color bgLight = const Color(0xFFFBFBFF);
-  final Color textDark = const Color(0xFF1D2939);
-  final Color textGrey = const Color(0xFF667085);
-
-  final List<Color> primaryGradient = [
-    const Color(0xFF8099FF),
-    const Color(0xFF33CCBC),
-  ];
+  static const Color bg = Color(0xFFFBFBFE);
+  static const Color lavenderAccent = Color(0xFF818CF8);
+  static const Color tealAccent = Color(0xFF2DD4BF);
+  static const Color textColor = Color(0xFF1E293B);
+  static const Color secondaryText = Color(0xFF64748B);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgLight,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: AppBar(
-          backgroundColor: bgLight,
-          elevation: 0,
-          centerTitle: false,
-          title: Padding(
-            padding: const EdgeInsets.only(top: 10.0),
-            child: ShaderMask(
-              shaderCallback: (bounds) => LinearGradient(
-                colors: primaryGradient,
-              ).createShader(Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
-              child: Text(
-                "SKILLSWAP",
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 24,
-                  letterSpacing: 1.0,
+      backgroundColor: bg,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Hi, Welcome!",
+                          style: GoogleFonts.poppins(
+                            color: lavenderAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          "Let's swap a skill",
+                          style: GoogleFonts.poppins(
+                            color: textColor,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const CircleAvatar(
+                      radius: 25,
+                      backgroundImage: NetworkImage(
+                        'https://i.pravatar.cc/150?u=me',
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(top: 10.0, right: 8.0),
-              child: IconButton(
-                onPressed: () {},
-                icon: Icon(Icons.logout_rounded, color: textDark),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.search, color: lavenderAccent),
+                      SizedBox(width: 10),
+                      Text(
+                        "Find a lesson...",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
+                    child: Text(
+                      "Featured Skills",
+                      style: GoogleFonts.poppins(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 200,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(left: 20),
+                      itemCount: 3,
+                      itemBuilder: (context, index) =>
+                          _buildFeaturedCard(index),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Top Rated Students",
+                      style: GoogleFonts.poppins(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Text(
+                      "View All",
+                      style: TextStyle(
+                        color: tealAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _buildTeacherTile(index),
+                  childCount: 4,
+                ),
               ),
             ),
           ],
         ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildFeaturedCard(int index) {
+    return Container(
+      width: 300,
+      margin: const EdgeInsets.only(right: 15),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(25),
+        gradient: LinearGradient(
+          colors: index == 0
+              ? [lavenderAccent, tealAccent]
+              : [Colors.blue, Colors.lightBlueAccent],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
         children: [
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F4F7),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFFD0D5DD).withOpacity(0.5),
-                ),
-              ),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: "Search for skills...",
-                  hintStyle: GoogleFonts.poppins(color: textGrey, fontSize: 14),
-                  border: InputBorder.none,
-                  icon: Icon(Icons.search, color: primaryGradient[0]),
-                ),
-              ),
+          Positioned(
+            right: -20,
+            bottom: -20,
+            child: Icon(
+              Icons.psychology,
+              size: 150,
+              color: Colors.white.withOpacity(0.2),
             ),
           ),
-          const SizedBox(height: 24),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              "Discover Skills",
-              style: GoogleFonts.poppins(
-                color: textDark,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 45,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildGradientCategoryChip("All", true),
-                _buildCategoryChip("Design", false),
-                _buildCategoryChip("Programming", false),
-                _buildCategoryChip("Mathematics", false),
+                const Text(
+                  "NEW TREND",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "Mastering\nFigma Layouts",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
+                  ),
+                ),
+                const Spacer(),
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: lavenderAccent,
+                    shape: StadiumBorder(),
+                  ),
+                  child: const Text("Join Swap"),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: 4,
-              itemBuilder: (context, index) => _buildSkillCard(index),
-            ),
-          ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
-  Widget _buildGradientCategoryChip(String label, bool isSelected) {
+  Widget _buildTeacherTile(int index) {
     return Container(
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 25),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: primaryGradient),
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: primaryGradient[1].withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.poppins(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryChip(String label, bool isSelected) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFFD0D5DD)),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.poppins(
-          color: textDark,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSkillCard(int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
         ],
-      ),
-      child: Column(
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-                child: Image.network(
-                  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=500',
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFCCFBEF),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    "Beginner",
-                    style: TextStyle(
-                      color: primaryGradient[1],
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          ListTile(
-            leading: const CircleAvatar(
-              backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=a'),
-            ),
-            title: Text(
-              index % 2 == 0 ? "UI/UX Design Masterclass" : "Flutter Dev",
-              style: GoogleFonts.poppins(
-                color: textDark,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            subtitle: Text(
-              "Marcus Johnson",
-              style: GoogleFonts.poppins(
-                color: primaryGradient[1],
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      height: 85,
-      padding: const EdgeInsets.only(bottom: 10),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFF2F4F7))),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildNavItem(0, Icons.home_filled, "Home"),
-          _buildNavItem(1, Icons.search_rounded, "Explore"),
-          _buildNavItem(2, Icons.swap_horiz_rounded, "Swap"),
-          _buildNavItem(3, Icons.mail_outline, "Message"),
-          _buildNavItem(4, Icons.person_outline, "Profile"),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label) {
-    bool isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedIndex = index);
-        if (index == 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ExploreScreen()),
-          ).then((_) => setState(() => _selectedIndex = 0));
-        } else if (index == 3) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const MessageScreen()),
-          ).then((_) => setState(() => _selectedIndex = 0));
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEEF2FF) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? primaryGradient[0] : textGrey,
-              size: 26,
+          const CircleAvatar(
+            radius: 25,
+            backgroundImage: NetworkImage(
+              'https://i.pravatar.cc/150?u=student',
             ),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: primaryGradient[0],
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Sarah Connor",
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
                 ),
-              ),
-            ],
-          ],
-        ),
+                Text(
+                  "Expert in UI Design",
+                  style: TextStyle(color: secondaryText, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.star_rounded, color: Colors.orange, size: 20),
+          const Text(" 4.9", style: TextStyle(fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
