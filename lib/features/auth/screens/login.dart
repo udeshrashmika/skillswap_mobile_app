@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'create_account.dart';
-import '../../marketplace/screens/marketplace_screen.dart';
+import '../../main_wrapper/screens/main_wrapper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -39,7 +39,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 30),
-
                     const Icon(
                       Icons.swap_calls_rounded,
                       size: 70,
@@ -116,7 +115,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-
                           const Text(
                             "Password",
                             style: TextStyle(
@@ -163,7 +161,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
@@ -193,8 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        const MarketplaceScreen(),
+                                    builder: (context) => const MainWrapper(),
                                   ),
                                 );
                               },
@@ -209,7 +205,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 25),
-
                           Row(
                             children: [
                               const Expanded(
@@ -239,7 +234,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
                           const SizedBox(height: 25),
-
                           SizedBox(
                             width: double.infinity,
                             height: 50,
@@ -253,7 +247,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                   borderRadius: BorderRadius.circular(25),
                                 ),
                               ),
-
                               onPressed: () {
                                 Navigator.push(
                                   context,
