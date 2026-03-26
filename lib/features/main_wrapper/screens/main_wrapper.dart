@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+
 import 'package:skillswap/features/marketplace/screens/marketplace_screen.dart';
 import 'package:skillswap/features/marketplace/screens/explore_screen.dart';
 import 'package:skillswap/features/requests/screens/requests_screen.dart';
 import 'package:skillswap/features/message/screens/message_screen.dart';
+
+
+import 'package:skillswap/features/marketplace/screens/add_skill_screen.dart';
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -33,7 +38,6 @@ class _MainWrapperState extends State<MainWrapper> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _selectedIndex, children: _pages),
-
       bottomNavigationBar: Container(
         height: 85,
         padding: const EdgeInsets.only(bottom: 10),
@@ -50,19 +54,75 @@ class _MainWrapperState extends State<MainWrapper> {
             ),
           ],
         ),
+        
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildNavItem(0, Icons.home_filled, "Home"),
-            _buildNavItem(1, Icons.search_rounded, "Explore"),
-            _buildNavItem(2, Icons.swap_horiz_rounded, "Requests"),
-            _buildNavItem(3, Icons.mail_outline_rounded, "Messages"),
+            
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(0, Icons.home_filled, "Home"),
+                  _buildNavItem(1, Icons.search_rounded, "Explore"),
+                ],
+              ),
+            ),
+            
+            
+            _buildAddSkillButton(context), 
+            
+            
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(2, Icons.swap_horiz_rounded, "Requests"),
+                  _buildNavItem(3, Icons.mail_outline_rounded, "Messages"),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
+  
+  Widget _buildAddSkillButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true, 
+          backgroundColor: Colors.transparent, 
+          builder: (context) => const AddSkillScreen(),
+        );
+      },
+      child: Container(
+        height: 42, 
+        width: 42,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: primaryGradient,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle, 
+          boxShadow: [
+            BoxShadow(
+              color: primaryGradient[0].withOpacity(0.3), 
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: const Icon(Icons.add, color: Colors.white, size: 22), 
+      ),
+    );
+  }
+
+  
   Widget _buildNavItem(int index, IconData icon, String label) {
     bool isSelected = _selectedIndex == index;
 
@@ -87,7 +147,6 @@ class _MainWrapperState extends State<MainWrapper> {
                     child: Icon(icon, color: Colors.white, size: 24),
                   )
                 : Icon(icon, color: textGrey, size: 24),
-
             if (isSelected) ...[
               const SizedBox(width: 8),
               ShaderMask(
