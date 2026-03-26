@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skillswap/features/marketplace/screens/marketplace_screen.dart';
 import 'package:skillswap/features/marketplace/screens/explore_screen.dart';
-//import 'package:skillswap/features/requests/screens/requests_screen.dart';
+import 'package:skillswap/features/requests/screens/requests_screen.dart';
 import 'package:skillswap/features/message/screens/message_screen.dart';
 
 class MainWrapper extends StatefulWidget {
@@ -25,7 +25,7 @@ class _MainWrapperState extends State<MainWrapper> {
   final List<Widget> _pages = [
     const MarketplaceScreen(),
     const ExploreScreen(),
-    //const RequestsScreen(),
+    const RequestsScreen(),
     const MessageScreen(),
   ];
 
