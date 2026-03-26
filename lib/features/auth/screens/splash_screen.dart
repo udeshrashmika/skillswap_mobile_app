@@ -66,35 +66,52 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Colors based on your provided reference image
+    const Color bgSage = Color(0xFFDDE7DC);
+    const Color primaryBlack = Color(0xFF000000);
+    const Color accentRed = Color(0xFFE31E24);
+
     return Scaffold(
-      body: Container(
+      backgroundColor: bgSage, // Flat sage background for that modern look
+      body: SizedBox(
         width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF3B3B5E), Color(0xFF121217)],
-          ),
-        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // LOGO ANIMATION
             SlideTransition(
               position: _slideAnimation,
               child: ScaleTransition(
                 scale: _scaleAnimation,
                 child: FadeTransition(
                   opacity: _fadeAnimation,
-                  child: const Icon(
-                    Icons.sync_alt_rounded,
-                    color: Colors.white,
-                    size: 110,
+                  child: Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      // Main Icon in Black
+                      const Icon(
+                        Icons.sync_alt_rounded,
+                        color: primaryBlack,
+                        size: 110,
+                      ),
+                      // Small Red Dot Accent (matches the 'w' logo in your image)
+                      Container(
+                        width: 12,
+                        height: 12,
+                        margin: const EdgeInsets.only(top: 15, right: 10),
+                        decoration: const BoxDecoration(
+                          color: accentRed,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 25),
 
+            // TEXT ANIMATION
             FadeTransition(
               opacity: _fadeAnimation,
               child: Column(
@@ -102,19 +119,20 @@ class _SplashScreenState extends State<SplashScreen>
                   Text(
                     "SKILLSWAP",
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
+                      color: primaryBlack,
                       fontSize: 38,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 4,
+                      fontWeight:
+                          FontWeight.w900, // Thicker weight for 'Summary' style
+                      letterSpacing: 2,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 5),
                   Text(
                     "Skill Up Today, Lead Tomorrow",
                     style: GoogleFonts.poppins(
-                      color: Colors.white.withOpacity(0.5),
+                      color: primaryBlack.withOpacity(0.6),
                       fontSize: 15,
-                      fontWeight: FontWeight.w400,
+                      fontWeight: FontWeight.w500,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -122,17 +140,17 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
 
-            const SizedBox(height: 60),
+            const SizedBox(height: 80),
+
+            // Modern, minimalist loading indicator
             FadeTransition(
               opacity: _fadeAnimation,
-              child: SizedBox(
-                width: 30,
-                height: 30,
+              child: const SizedBox(
+                width: 35,
+                height: 35,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.white.withOpacity(0.2),
-                  ),
+                  strokeWidth: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(primaryBlack),
                 ),
               ),
             ),
