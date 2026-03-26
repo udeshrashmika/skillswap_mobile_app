@@ -15,7 +15,6 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _animation;
 
-  // BRAND COLORS
   final List<Color> primaryGradient = [
     const Color(0xFF818CF8),
     const Color(0xFF2DD4BF),
