@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
-
 import 'package:skillswap/features/marketplace/screens/marketplace_screen.dart';
 import 'package:skillswap/features/marketplace/screens/explore_screen.dart';
 import 'package:skillswap/features/requests/screens/requests_screen.dart';
@@ -20,7 +17,6 @@ class MainWrapper extends StatefulWidget {
 class _MainWrapperState extends State<MainWrapper> {
   int _selectedIndex = 0;
 
-  final Color bgLight = const Color(0xFFFBFBFF);
   final Color textGrey = const Color(0xFF667085);
   final List<Color> primaryGradient = [
     const Color(0xFF8099FF),
@@ -55,33 +51,18 @@ class _MainWrapperState extends State<MainWrapper> {
           ],
         ),
         
+        
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildNavItem(0, Icons.home_filled, "Home"),
-                  _buildNavItem(1, Icons.search_rounded, "Explore"),
-                ],
-              ),
-            ),
+            _buildNavItem(0, Icons.home_filled),
+            _buildNavItem(1, Icons.search_rounded),
             
             
             _buildAddSkillButton(context), 
             
-            
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildNavItem(2, Icons.swap_horiz_rounded, "Requests"),
-                  _buildNavItem(3, Icons.mail_outline_rounded, "Messages"),
-                ],
-              ),
-            ),
+            _buildNavItem(2, Icons.swap_horiz_rounded),
+            _buildNavItem(3, Icons.mail_outline_rounded),
           ],
         ),
       ),
@@ -92,6 +73,7 @@ class _MainWrapperState extends State<MainWrapper> {
   Widget _buildAddSkillButton(BuildContext context) {
     return GestureDetector(
       onTap: () {
+        
         showModalBottomSheet(
           context: context,
           isScrollControlled: true, 
@@ -100,8 +82,8 @@ class _MainWrapperState extends State<MainWrapper> {
         );
       },
       child: Container(
-        height: 42, 
-        width: 42,
+        height: 46, 
+        width: 46,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: primaryGradient,
@@ -117,53 +99,35 @@ class _MainWrapperState extends State<MainWrapper> {
             ),
           ],
         ),
-        child: const Icon(Icons.add, color: Colors.white, size: 22), 
+        child: const Icon(Icons.add, color: Colors.white, size: 24), 
       ),
     );
   }
 
   
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(int index, IconData icon) {
     bool isSelected = _selectedIndex == index;
 
     return GestureDetector(
       onTap: () => setState(() => _selectedIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEEF2FF) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            isSelected
-                ? ShaderMask(
-                    shaderCallback: (bounds) => LinearGradient(
-                      colors: primaryGradient,
-                    ).createShader(bounds),
-                    child: Icon(icon, color: Colors.white, size: 24),
-                  )
-                : Icon(icon, color: textGrey, size: 24),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              ShaderMask(
-                shaderCallback: (bounds) => LinearGradient(
-                  colors: primaryGradient,
-                ).createShader(bounds),
-                child: Text(
-                  label,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
-          ],
+      child: Container(
+        color: Colors.transparent, 
+        
+        width: 60,
+        height: 60,
+        alignment: Alignment.center, 
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          child: isSelected
+              
+              ? ShaderMask(
+                  shaderCallback: (bounds) => LinearGradient(
+                    colors: primaryGradient,
+                  ).createShader(bounds),
+                  child: Icon(icon, color: Colors.white, size: 28),
+                )
+              
+              : Icon(icon, color: textGrey, size: 26),
         ),
       ),
     );
