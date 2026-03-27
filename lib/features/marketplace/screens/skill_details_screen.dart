@@ -1,83 +1,78 @@
+
+
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SkillDetailsScreen extends StatelessWidget {
   const SkillDetailsScreen({super.key});
 
   
-  static const Color darkBackground = Color(0xFF13131A);
-  static const Color primaryPurple = Color(0xFFA17CFF);
-  static const Color cardColor = Color(0xFF1C1C26);
-  static const Color textColor = Colors.white;
-  static const Color textMuted = Colors.white70;
+  static const Color bg = Color(0xFFFBFBFE);
+  static const Color lavenderAccent = Color(0xFF818CF8);
+  static const Color tealAccent = Color(0xFF2DD4BF);
+  static const Color textColor = Color(0xFF1E293B);
+  static const Color secondaryText = Color(0xFF64748B);
+  static const Color cardBg = Color(0xFFF1F5F9); 
+
+  final List<Color> primaryGradient = const [
+    Color(0xFF8099FF),
+    Color(0xFF33CCBC),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: darkBackground,
-      
+      backgroundColor: bg,
+
       
       appBar: AppBar(
-        backgroundColor: primaryPurple,
-        elevation: 0, 
-        
-        
+        backgroundColor: bg,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 22),
           onPressed: () {
-            Navigator.pop(context); 
+            Navigator.pop(context);
           },
         ),
         
-        
-        centerTitle: true,
-        title: const Text(
-          'SKILLSWAP',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
+        centerTitle: false, 
+        title: Text(
+          'Skill Details',
+          style: GoogleFonts.poppins(
+            color: textColor,
+            fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
+        actions: const [], 
         
-        
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app_rounded, color: Colors.white, size: 26),
-            onPressed: () {
-              
-            },
-          ),
-          const SizedBox(width: 8), 
-        ],
       ),
 
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
             
             Container(
               height: 220,
               width: double.infinity,
               decoration: const BoxDecoration(
                 image: DecorationImage(
-                  
                   image: NetworkImage('https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'),
                   fit: BoxFit.cover,
                 ),
               ),
-              
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      darkBackground,
-                      Colors.transparent,
+                      bg, 
+                      Colors.white.withOpacity(0.0),
                     ],
-                    stops: const [0.0, 0.3],
+                    stops: const [0.0, 0.4],
                   ),
                 ),
               ),
@@ -89,11 +84,10 @@ class SkillDetailsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 10),
-                  
-                 
-                  const Text(
+
+                  Text(
                     'React & TypeScript Fundamentals',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       color: textColor,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -101,21 +95,21 @@ class SkillDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 25),
 
-                  
+                 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _buildInfoCard(Icons.access_time, 'Duration', '2 hours/week'),
-                      _buildInfoCard(Icons.local_offer_outlined, 'Category', 'Programming'),
+                      _buildInfoCard(Icons.local_offer_outlined, 'Category', 'Coding'),
                       _buildInfoCard(Icons.calendar_today_outlined, 'Posted', 'Mar 10'),
                     ],
                   ),
                   const SizedBox(height: 30),
 
-                  
-                  const Text(
+                 
+                  Text(
                     'About this skill',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       color: textColor,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -124,9 +118,9 @@ class SkillDetailsScreen extends StatelessWidget {
                   const SizedBox(height: 15),
                   Text(
                     'Learn the basics of React and TypeScript to build modern web applications. Perfect for beginners who want to get started with frontend development. Learn the basics of React and TypeScript to build modern web applications. Perfect for beginners who want to get started with frontend development.',
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      height: 1.5,
+                    style: GoogleFonts.poppins(
+                      color: secondaryText,
+                      height: 1.6,
                       fontSize: 13,
                     ),
                   ),
@@ -135,116 +129,107 @@ class SkillDetailsScreen extends StatelessWidget {
                   
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
                     decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                        color: primaryPurple.withOpacity(0.3), 
-                        width: 1.5,
-                      ),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: primaryPurple.withOpacity(0.15), 
+                          color: Colors.black.withOpacity(0.03),
                           blurRadius: 20,
-                          spreadRadius: 2,
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
                     child: Column(
                       children: [
-                        const Text(
+                        Text(
                           'Your Teacher',
-                          style: TextStyle(color: textMuted, fontSize: 14),
+                          style: GoogleFonts.poppins(color: secondaryText, fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 15),
-                        
+
                         Container(
-                          padding: const EdgeInsets.all(2),
+                          padding: const EdgeInsets.all(3),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: primaryPurple, width: 2),
+                            border: Border.all(color: lavenderAccent, width: 2),
                           ),
                           child: const CircleAvatar(
-                            radius: 30,
-                            backgroundImage: NetworkImage('https://randomuser.me/api/portraits/men/32.jpg'), 
+                            radius: 35,
+                            backgroundImage: NetworkImage('https://randomuser.me/api/portraits/men/32.jpg'),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        const Text(
+                        const SizedBox(height: 12),
+                        Text(
                           'Marcus Johnson',
-                          style: TextStyle(
+                          style: GoogleFonts.poppins(
                             color: textColor,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 18,
                           ),
                         ),
-                        const SizedBox(height: 5),
-                        const Text(
+                        const SizedBox(height: 4),
+                        Text(
                           'Computer Science',
-                          style: TextStyle(color: textMuted, fontSize: 12),
+                          style: GoogleFonts.poppins(color: tealAccent, fontSize: 13, fontWeight: FontWeight.w500),
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 8),
                         Text(
                           'Passionate about Web development and teaching others',
-                          style: TextStyle(color: Colors.grey[500], fontSize: 10),
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(color: secondaryText, fontSize: 12),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 30),
 
-                 
-                  SizedBox(
+                  
+                  Container(
                     width: double.infinity,
                     height: 55,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: primaryGradient,
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryGradient[0].withOpacity(0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
                     child: ElevatedButton.icon(
                       onPressed: () {
                         
                       },
-                      icon: const Icon(Icons.mail_outline, color: darkBackground),
-                      label: const Text(
+                      icon: const Icon(Icons.mail_outline, color: Colors.white),
+                      label: Text(
                         'Request to Learn',
-                        style: TextStyle(
-                          color: darkBackground,
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryPurple,
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(15),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 40), 
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-
-      
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1)),
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: darkBackground,
-          type: BottomNavigationBarType.fixed,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          selectedItemColor: primaryPurple,
-          unselectedItemColor: primaryPurple.withOpacity(0.5),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-            BottomNavigationBarItem(icon: Icon(Icons.download_for_offline_outlined), label: 'Downloads'),
-            BottomNavigationBarItem(icon: Icon(Icons.mail_outline), label: 'Messages'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
           ],
         ),
       ),
@@ -258,18 +243,23 @@ class SkillDetailsScreen extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          color: cardBg,
+          borderRadius: BorderRadius.circular(15),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: primaryPurple, size: 20),
+            Icon(icon, color: lavenderAccent, size: 24),
             const SizedBox(height: 8),
-            Text(title, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+            Text(
+              title,
+              style: GoogleFonts.poppins(color: secondaryText, fontSize: 11)
+            ),
             const SizedBox(height: 4),
-            Text(value, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+            Text(
+              value,
+              style: GoogleFonts.poppins(color: textColor, fontSize: 12, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),

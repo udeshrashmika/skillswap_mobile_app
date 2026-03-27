@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+
+import 'package:skillswap/features/marketplace/screens/skill_details_screen.dart'; 
+
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
 
@@ -95,7 +98,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               itemCount: 8,
-              itemBuilder: (context, index) => _buildHorizontalCard(),
+              
+              itemBuilder: (context, index) => _buildHorizontalCard(context),
             ),
           ),
         ],
@@ -136,96 +140,106 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildHorizontalCard() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: Image.network(
-              'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=200',
-              width: 85,
-              height: 85,
-              fit: BoxFit.cover,
+  
+  Widget _buildHorizontalCard(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SkillDetailsScreen()),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFF1F5F9)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "UI/UX Design for Mobile",
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "By Sarah Connor",
-                  style: GoogleFonts.poppins(
-                    color: secondaryText,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.star_rounded,
-                      color: Colors.orange,
-                      size: 16,
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.network(
+                'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=200',
+                width: 85,
+                height: 85,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "UI/UX Design for Mobile",
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                      fontSize: 15,
                     ),
-                    const Text(
-                      " 4.8",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "By Sarah Connor",
+                    style: GoogleFonts.poppins(
+                      color: secondaryText,
+                      fontSize: 12,
                     ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.star_rounded,
+                        color: Colors.orange,
+                        size: 16,
                       ),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [lavenderAccent, tealAccent],
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        "Free Swap",
+                      const Text(
+                        " 4.8",
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
                           fontWeight: FontWeight.bold,
+                          fontSize: 12,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [lavenderAccent, tealAccent],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          "Free Swap",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
