@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-
-import 'package:skillswap/features/marketplace/screens/skill_details_screen.dart'; 
+import 'package:skillswap/features/marketplace/screens/skill_details_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -39,52 +39,37 @@ class _ExploreScreenState extends State<ExploreScreen> {
       ),
       body: Column(
         children: [
+          // Search Bar
           Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: const TextField(
-                      decoration: InputDecoration(
-                        hintText: "What do you want to learn?",
-                        border: InputBorder.none,
-                        icon: Icon(Icons.search, color: lavenderAccent),
-                      ),
-                    ),
-                  ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: const TextField(
+                decoration: InputDecoration(
+                  hintText: "What do you want to learn?",
+                  border: InputBorder.none,
+                  icon: Icon(Icons.search, color: lavenderAccent),
                 ),
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [lavenderAccent, tealAccent],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.tune_rounded, color: Colors.white),
-                ),
-              ],
+              ),
             ),
           ),
 
+          // Categories List
           SizedBox(
             height: 100,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
-                _buildCircularCat("Design", Icons.palette_outlined),
-                _buildCircularCat("Coding", Icons.code_rounded),
-                _buildCircularCat("Music", Icons.music_note_outlined),
-                _buildCircularCat("Math", Icons.functions_rounded),
-                _buildCircularCat("Video", Icons.videocam_outlined),
+                _buildCircularCat("Design", FontAwesomeIcons.penNib),
+                _buildCircularCat("Coding", FontAwesomeIcons.code),
+                _buildCircularCat("Music", FontAwesomeIcons.music),
+                _buildCircularCat("Math", FontAwesomeIcons.calculator),
+                _buildCircularCat("Video", FontAwesomeIcons.video),
               ],
             ),
           ),
@@ -94,11 +79,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Divider(color: Color(0xFFE2E8F0)),
           ),
 
+          // Skills List
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               itemCount: 8,
-              
               itemBuilder: (context, index) => _buildHorizontalCard(context),
             ),
           ),
@@ -107,13 +92,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildCircularCat(String label, IconData icon) {
+  // Update කරපු, size එක අඩු කරපු Category Icon එක
+  Widget _buildCircularCat(String label, dynamic icon) {
     return Padding(
       padding: const EdgeInsets.only(right: 20),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(12), // Padding එක අඩු කළා
+            width: 50, // රවුමේ පළල 50ක් කළා
+            height: 50, // රවුමේ උස 50ක් කළා
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -124,7 +112,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
               ],
             ),
-            child: Icon(icon, color: lavenderAccent),
+            // FaIcon එකේ size එක 18ක් කළා
+            child: Center(child: FaIcon(icon, color: lavenderAccent, size: 18)),
           ),
           const SizedBox(height: 8),
           Text(
@@ -140,11 +129,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  
+  // Skill Card එක
   Widget _buildHorizontalCard(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const SkillDetailsScreen()),
