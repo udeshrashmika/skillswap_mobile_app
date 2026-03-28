@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
+
 import 'package:skillswap/features/marketplace/screens/skill_details_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -38,6 +40,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       ),
       body: Column(
         children: [
+          
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Container(
@@ -56,6 +59,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
 
+          
           SizedBox(
             height: 100,
             child: ListView(
@@ -76,11 +80,39 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Divider(color: Color(0xFFE2E8F0)),
           ),
 
+          
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: 8,
-              itemBuilder: (context, index) => _buildHorizontalCard(context),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('skills').orderBy('createdAt', descending: true).snapshots(),
+              builder: (context, snapshot) {
+                
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return const Center(child: Text("Something went wrong!"));
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Text(
+                      "No skills found. Be the first to add one!",
+                      style: GoogleFonts.poppins(color: secondaryText),
+                    ),
+                  );
+                }
+
+                final skills = snapshot.data!.docs;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: skills.length,
+                  itemBuilder: (context, index) {
+                    return _buildHorizontalCard(context, skills[index]); 
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -88,15 +120,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
+ 
   Widget _buildCircularCat(String label, dynamic icon) {
     return Padding(
       padding: const EdgeInsets.only(right: 20),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
-            width: 50,
-            height: 50,
+            padding: const EdgeInsets.all(12), 
+            width: 50, 
+            height: 50, 
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -107,7 +140,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
               ],
             ),
-
             child: Center(child: FaIcon(icon, color: lavenderAccent, size: 18)),
           ),
           const SizedBox(height: 8),
@@ -124,12 +156,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildHorizontalCard(BuildContext context) {
+  
+  Widget _buildHorizontalCard(BuildContext context, DocumentSnapshot skillDoc) {
+   
+    final skillData = skillDoc.data() as Map<String, dynamic>;
+    final skillId = skillDoc.id; 
+
     return GestureDetector(
       onTap: () {
+        
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const SkillDetailsScreen()),
+          MaterialPageRoute(
+            builder: (context) => SkillDetailsScreen(skillId: skillId), 
+          ),
         );
       },
       child: Container(
@@ -163,17 +203,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                 
                   Text(
-                    "UI/UX Design for Mobile",
+                    skillData['title'] ?? 'No Title',
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       color: textColor,
                       fontSize: 15,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
+                  
                   Text(
-                    "By Sarah Connor",
+                    skillData['category'] ?? 'General',
                     style: GoogleFonts.poppins(
                       color: secondaryText,
                       fontSize: 12,
@@ -195,6 +239,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         ),
                       ),
                       const Spacer(),
+                      
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -206,9 +251,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           ),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          "Free Swap",
-                          style: TextStyle(
+                        child: Text(
+                          skillData['level'] ?? "Beginner", 
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,

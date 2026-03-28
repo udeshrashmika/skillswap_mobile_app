@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 
 class AddSkillScreen extends StatefulWidget {
   const AddSkillScreen({super.key});
@@ -16,12 +17,12 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
   final _levelController = TextEditingController();
   final _timeController = TextEditingController();
 
-  
+  bool _isLoading = false; 
+
   static const Color bg = Color(0xFFFBFBFE);
   static const Color textColor = Color(0xFF1E293B);
   static const Color secondaryText = Color(0xFF64748B);
   static const Color inputBgColor = Color(0xFFF1F5F9); 
-  
   
   final List<Color> primaryGradient = [
     const Color(0xFF8099FF),
@@ -36,6 +37,63 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
     _levelController.dispose();
     _timeController.dispose();
     super.dispose();
+  }
+
+ 
+  Future<void> _publishSkill() async {
+    
+    if (_titleController.text.trim().isEmpty || 
+        _categoryController.text.trim().isEmpty || 
+        _descriptionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in the required fields.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      
+      DocumentReference newSkillRef = FirebaseFirestore.instance.collection('skills').doc();
+
+     
+      await newSkillRef.set({
+        'id': newSkillRef.id, 
+        'title': _titleController.text.trim(),
+        'category': _categoryController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'level': _levelController.text.trim(),
+        'time': _timeController.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(), 
+      });
+
+      
+      if (mounted) {
+        Navigator.pop(context); 
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Skill Published Successfully! 🎉'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false; 
+        });
+      }
+    }
   }
 
   @override
@@ -95,7 +153,6 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
             ),
           ),
 
-          
           Padding(
             padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
             child: Text(
@@ -107,7 +164,6 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
             ),
           ),
 
-          
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -126,7 +182,6 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
 
                   const SizedBox(height: 30),
 
-                  
                   Row(
                     children: [
                       Expanded(
@@ -168,23 +223,28 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
                             ],
                           ),
                           child: ElevatedButton(
-                            onPressed: () {
-                              print("Publish skill: ${_titleController.text}");
-                            },
+                           
+                            onPressed: _isLoading ? null : _publishSkill, 
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                             ),
-                            child: Text(
-                              'Publish Skill',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
+                            child: _isLoading 
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                : Text(
+                                    'Publish Skill',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
                           ),
                         ),
                       ),
@@ -200,7 +260,6 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
     );
   }
 
-  
   Widget _buildInputField(String label, TextEditingController controller, {int maxLines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
