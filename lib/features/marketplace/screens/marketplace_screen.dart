@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// Oyaage profile pituwe file eka methana import karanna. 
-// Mama eka 'profile.dart' kiyala hithala mehema damma.
 import 'package:skillswap/features/profile/screens/profile.dart';
 
 class MarketplaceScreen extends StatefulWidget {
@@ -54,14 +52,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       ],
                     ),
                     
-                    // --- METHANAI WENAS KALE ---
-                    // CircleAvatar eka GestureDetector ekakin wrap kala navigate wenna
+                    
                     GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const ProfileScreen(), // Oyaage profile class eke nama danna
+                            builder: (context) => const ProfileScreen(), 
                           ),
                         );
                       },
@@ -72,7 +69,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         ),
                       ),
                     ),
-                    // ---------------------------
+                    
                     
                   ],
                 ),

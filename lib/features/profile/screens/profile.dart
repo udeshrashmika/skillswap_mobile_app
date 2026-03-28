@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-
+// --- COLORS MATCHED TO YOUR UI ---
 const Color bg = Colors.white;
 const Color primaryDarkPurple = Color(0xFF464275);
 const Color gradientStartBlue = Color(0xFF799AF8);
@@ -49,14 +49,14 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   
-  
+  // --- STATE VARIABLES ---
   String userBio = "";
   List<String> skillsOffered = [];
 
   final String userName = "Irosh Cristeen";
   final String userUniversity = "NSBM Green University";
 
-  
+  // --- LOGOUT DIALOG ---
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -90,7 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  
+  // --- EDIT BIO BOTTOM SHEET (About Me witharak wenama) ---
   void _showEditBioSheet() {
     TextEditingController bioController = TextEditingController(text: userBio);
 
@@ -157,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  
+  // --- EDIT SKILLS BOTTOM SHEET (Skills witharak wenama) ---
   void _showEditSkillsSheet() {
     TextEditingController skillController = TextEditingController();
 
@@ -212,7 +212,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   skillsOffered.add(skillController.text.trim());
                                   skillController.clear();
                                 });
-                                
+                                // Main UI ekath update wenna oni nisa
                                 setState(() {});
                               }
                             },
@@ -284,7 +284,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           "My Profile",
           style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 20),
         ),
-        
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -292,7 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 10),
-            
+            // 1. Profile Picture
             Container(
               height: 120,
               width: 120,
@@ -309,13 +308,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 15),
 
-            
+            // 2. User Info
             Text(userName, style: const TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
             Text(userUniversity, style: const TextStyle(color: secondaryText, fontSize: 15)),
             const SizedBox(height: 12),
 
-            
+            // 3. Rating
             const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -326,7 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 25),
 
-            
+            // 4. About Me Card 
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -364,45 +363,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 30),
 
-             
+            // 5. Skills Offered 
             _buildSkillSection(context, "Skills Offered", skillsOffered, true),
             const SizedBox(height: 35),
 
-            
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Navigate to full edit page!"), 
-                          backgroundColor: bottomNavActive
-                        ),
-                      );
-                    }, 
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryDarkPurple,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      elevation: 0,
-                    ),
-                    child: const Text("Edit Profile", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
+            // 6. Action Buttons (Only Logout left)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _showLogoutDialog(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.redAccent,
+                  side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
-                const SizedBox(width: 12),
-                OutlinedButton(
-                  onPressed: () => _showLogoutDialog(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.redAccent,
-                    side: const BorderSide(color: Colors.redAccent, width: 1.5),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  ),
-                  child: const Text("Logout", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                ),
-              ],
+                child: const Text("Logout", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
             ),
             const SizedBox(height: 30),
           ],
@@ -417,7 +394,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          
           Text(title, style: const TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           skills.isEmpty
@@ -426,7 +402,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   side: BorderSide.none,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   label: const Text("+ Add your first skill", style: TextStyle(color: bottomNavActive, fontWeight: FontWeight.bold)),
-                  onPressed: _showEditSkillsSheet, // Skills edit sheet eka thama meken call karanna puluwan
+                  onPressed: _showEditSkillsSheet, 
                 )
               : Wrap(
                   spacing: 10.0,
