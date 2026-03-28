@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 import 'package:skillswap/features/marketplace/screens/skill_details_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -39,7 +38,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
       ),
       body: Column(
         children: [
-          // Search Bar
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Container(
@@ -58,7 +56,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
 
-          // Categories List
           SizedBox(
             height: 100,
             child: ListView(
@@ -79,7 +76,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Divider(color: Color(0xFFE2E8F0)),
           ),
 
-          // Skills List
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -92,16 +88,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  // Update කරපු, size එක අඩු කරපු Category Icon එක
   Widget _buildCircularCat(String label, dynamic icon) {
     return Padding(
       padding: const EdgeInsets.only(right: 20),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12), // Padding එක අඩු කළා
-            width: 50, // රවුමේ පළල 50ක් කළා
-            height: 50, // රවුමේ උස 50ක් කළා
+            padding: const EdgeInsets.all(12),
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -112,7 +107,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
               ],
             ),
-            // FaIcon එකේ size එක 18ක් කළා
+
             child: Center(child: FaIcon(icon, color: lavenderAccent, size: 18)),
           ),
           const SizedBox(height: 8),
@@ -129,7 +124,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  // Skill Card එක
   Widget _buildHorizontalCard(BuildContext context) {
     return GestureDetector(
       onTap: () {
