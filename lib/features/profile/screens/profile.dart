@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-
+// Color Palette
 const Color bg = Colors.white;
 const Color primaryDarkPurple = Color(0xFF464275);
 const Color gradientStartBlue = Color(0xFF799AF8);
@@ -48,15 +48,12 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  
-  
   String userBio = "";
   List<String> skillsOffered = [];
 
   final String userName = "Irosh Cristeen";
   final String userUniversity = "NSBM Green University";
 
-  
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -90,7 +87,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  
   void _showEditBioSheet() {
     TextEditingController bioController = TextEditingController(text: userBio);
 
@@ -116,7 +112,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Text("Edit About Me", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
                 ),
                 const SizedBox(height: 20),
-                
                 TextField(
                   controller: bioController,
                   maxLines: 4,
@@ -129,7 +124,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 30),
-
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -157,7 +151,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  
   void _showEditSkillsSheet() {
     TextEditingController skillController = TextEditingController();
 
@@ -185,7 +178,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Text("Edit Skills Offered", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
                     ),
                     const SizedBox(height: 20),
-                    
                     Row(
                       children: [
                         Expanded(
@@ -212,7 +204,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   skillsOffered.add(skillController.text.trim());
                                   skillController.clear();
                                 });
-                                
                                 setState(() {});
                               }
                             },
@@ -221,7 +212,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 15),
-                    
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -241,7 +231,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       }).toList(),
                     ),
                     const SizedBox(height: 30),
-
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -251,9 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           elevation: 0,
                         ),
-                        onPressed: () {
-                          Navigator.pop(context); 
-                        },
+                        onPressed: () => Navigator.pop(context),
                         child: const Text("Done", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
@@ -292,6 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             const SizedBox(height: 10),
             
+            // Profile Picture Circle
             Container(
               height: 120,
               width: 120,
@@ -308,13 +296,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 15),
 
-            
-            Text(userName, style: const TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.bold)),
+            // Profile Name and History Button
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(width: 40), // Offset to keep name centered
+                Text(
+                  userName, 
+                  style: const TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.bold)
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Opening History...")),
+                    );
+                  },
+                  icon: const Icon(Icons.history, color: primaryDarkPurple, size: 24),
+                  tooltip: "History",
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
             Text(userUniversity, style: const TextStyle(color: secondaryText, fontSize: 15)),
             const SizedBox(height: 12),
 
-            
+            // Rating Section
             const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -325,7 +334,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 25),
 
-             
+            // About Me Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -363,11 +372,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 30),
 
-            
+            // Skills Section
             _buildSkillSection(context, "Skills Offered", skillsOffered, true),
             const SizedBox(height: 35),
 
-            
+            // Logout Button
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
