@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; 
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skillswap/features/marketplace/screens/skill_details_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -18,6 +17,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
   static const Color tealAccent = Color(0xFF2DD4BF);
   static const Color textColor = Color(0xFF1E293B);
   static const Color secondaryText = Color(0xFF64748B);
+
+  String searchQuery = "";
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +41,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
       ),
       body: Column(
         children: [
-          
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Container(
@@ -49,8 +49,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 color: const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: const TextField(
-                decoration: InputDecoration(
+              child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value.toLowerCase();
+                  });
+                },
+                decoration: const InputDecoration(
                   hintText: "What do you want to learn?",
                   border: InputBorder.none,
                   icon: Icon(Icons.search, color: lavenderAccent),
@@ -59,7 +64,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
 
-          
           SizedBox(
             height: 100,
             child: ListView(
@@ -80,12 +84,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Divider(color: Color(0xFFE2E8F0)),
           ),
 
-          
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('skills').orderBy('createdAt', descending: true).snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('skills')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
               builder: (context, snapshot) {
-                
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -103,13 +108,37 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   );
                 }
 
-                final skills = snapshot.data!.docs;
+                final allSkills = snapshot.data!.docs;
+
+                final filteredSkills = allSkills.where((skillDoc) {
+                  final skillData = skillDoc.data() as Map<String, dynamic>;
+
+                  final title = (skillData['title'] ?? '')
+                      .toString()
+                      .toLowerCase();
+
+                  final category = (skillData['category'] ?? '')
+                      .toString()
+                      .toLowerCase();
+
+                  return title.contains(searchQuery) ||
+                      category.contains(searchQuery);
+                }).toList();
+
+                if (filteredSkills.isEmpty) {
+                  return Center(
+                    child: Text(
+                      "No results found for '$searchQuery'",
+                      style: GoogleFonts.poppins(color: secondaryText),
+                    ),
+                  );
+                }
 
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: skills.length,
+                  itemCount: filteredSkills.length,
                   itemBuilder: (context, index) {
-                    return _buildHorizontalCard(context, skills[index]); 
+                    return _buildHorizontalCard(context, filteredSkills[index]);
                   },
                 );
               },
@@ -120,16 +149,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
- 
   Widget _buildCircularCat(String label, dynamic icon) {
     return Padding(
       padding: const EdgeInsets.only(right: 20),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12), 
-            width: 50, 
-            height: 50, 
+            padding: const EdgeInsets.all(12),
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -156,19 +184,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  
   Widget _buildHorizontalCard(BuildContext context, DocumentSnapshot skillDoc) {
-   
     final skillData = skillDoc.data() as Map<String, dynamic>;
-    final skillId = skillDoc.id; 
+    final skillId = skillDoc.id;
 
     return GestureDetector(
       onTap: () {
-        
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SkillDetailsScreen(skillId: skillId), 
+            builder: (context) => SkillDetailsScreen(skillId: skillId),
           ),
         );
       },
@@ -203,7 +228,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                 
                   Text(
                     skillData['title'] ?? 'No Title',
                     style: GoogleFonts.poppins(
@@ -215,7 +239,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  
                   Text(
                     skillData['category'] ?? 'General',
                     style: GoogleFonts.poppins(
@@ -239,7 +262,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         ),
                       ),
                       const Spacer(),
-                      
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -252,7 +274,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          skillData['level'] ?? "Beginner", 
+                          skillData['level'] ?? "Beginner",
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
