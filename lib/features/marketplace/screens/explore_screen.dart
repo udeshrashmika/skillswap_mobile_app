@@ -19,6 +19,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   static const Color secondaryText = Color(0xFF64748B);
 
   String searchQuery = "";
+  String selectedCategory = "";
 
   @override
   Widget build(BuildContext context) {
@@ -121,14 +122,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       .toString()
                       .toLowerCase();
 
-                  return title.contains(searchQuery) ||
+                  final matchesSearch =
+                      title.contains(searchQuery) ||
                       category.contains(searchQuery);
+
+                  final matchesCategory =
+                      selectedCategory.isEmpty ||
+                      category == selectedCategory.toLowerCase();
+
+                  return matchesSearch && matchesCategory;
                 }).toList();
 
                 if (filteredSkills.isEmpty) {
                   return Center(
                     child: Text(
-                      "No results found for '$searchQuery'",
+                      "No results found",
                       style: GoogleFonts.poppins(color: secondaryText),
                     ),
                   );
@@ -150,36 +158,58 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Widget _buildCircularCat(String label, dynamic icon) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 20),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
+    final isSelected = selectedCategory == label;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (selectedCategory == label) {
+            selectedCategory = "";
+          } else {
+            selectedCategory = label;
+          }
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(right: 20),
+        child: Column(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(12),
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: isSelected ? lavenderAccent : Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+
+              child: Center(
+                child: FaIcon(
+                  icon,
+                  color: isSelected ? Colors.white : lavenderAccent,
+                  size: 18,
                 ),
-              ],
+              ),
             ),
-            child: Center(child: FaIcon(icon, color: lavenderAccent, size: 18)),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              color: secondaryText,
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+
+                color: isSelected ? lavenderAccent : secondaryText,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
