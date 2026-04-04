@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; 
+import 'package:google_fonts/google_fonts.dart';
 
 class RequestsScreen extends StatefulWidget {
   const RequestsScreen({super.key});
@@ -9,27 +9,25 @@ class RequestsScreen extends StatefulWidget {
 }
 
 class _RequestsScreenState extends State<RequestsScreen> {
-  
-  static const Color lightBackground = Color(0xFFFAFAFA); 
-  static const Color primaryPurple = Color(0xFF6A5AE0); 
-  static const Color cardColor = Colors.white; 
-  static const Color textColor = Color(0xFF1E1E2D); 
+  static const Color lightBackground = Color(0xFFFAFAFA);
+  static const Color primaryPurple = Color(0xFF6A5AE0);
+  static const Color cardColor = Colors.white;
+  static const Color textColor = Color(0xFF1E1E2D);
   static const Color textMuted = Colors.grey;
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2, 
+      length: 2,
       child: Scaffold(
-        backgroundColor: lightBackground, 
-        
-        
+        backgroundColor: lightBackground,
+
         appBar: AppBar(
-          backgroundColor: lightBackground, 
-          elevation: 0, 
-          automaticallyImplyLeading: false, 
+          backgroundColor: lightBackground,
+          elevation: 0,
+          automaticallyImplyLeading: false,
           centerTitle: false,
-          
+
           title: Padding(
             padding: const EdgeInsets.only(top: 10.0, left: 8.0),
             child: Text(
@@ -37,19 +35,19 @@ class _RequestsScreenState extends State<RequestsScreen> {
               style: GoogleFonts.poppins(
                 color: textColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 28, 
+                fontSize: 28,
                 letterSpacing: 0.5,
               ),
             ),
           ),
-          
+
           actions: [
             Padding(
               padding: const EdgeInsets.only(top: 10.0, right: 16.0),
               child: Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey.shade300), 
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: IconButton(
                   onPressed: () {},
@@ -64,7 +62,6 @@ class _RequestsScreenState extends State<RequestsScreen> {
           ],
         ),
 
-        
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -73,10 +70,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Text(
                 'Manage your skill exchange',
-                style: TextStyle(
-                  color: textMuted,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: textMuted, fontSize: 14),
               ),
             ),
             const SizedBox(height: 25),
@@ -88,21 +82,27 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 indicatorWeight: 3,
                 labelColor: primaryPurple,
                 unselectedLabelColor: textMuted,
-                labelStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
+                labelStyle: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
                 tabs: const [
-                  Tab(text: 'Received'), 
+                  Tab(text: 'Received'),
                   Tab(text: 'Sent'),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 20),
 
             Expanded(
               child: TabBarView(
                 children: [
                   ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                     itemCount: 3,
                     itemBuilder: (context, index) {
                       return _buildLightRequestCard();
@@ -119,24 +119,21 @@ class _RequestsScreenState extends State<RequestsScreen> {
             ),
           ],
         ),
-        
-        
       ),
     );
   }
 
-  
   Widget _buildLightRequestCard() {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardColor, 
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200), 
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03), 
+            color: Colors.black.withOpacity(0.03),
             blurRadius: 10,
             spreadRadius: 1,
             offset: const Offset(0, 4),
@@ -150,7 +147,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
             children: [
               const CircleAvatar(
                 radius: 20,
-                backgroundImage: NetworkImage('https://randomuser.me/api/portraits/men/32.jpg'),
+                backgroundImage: NetworkImage(
+                  'https://randomuser.me/api/portraits/men/32.jpg',
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -159,7 +158,11 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   children: [
                     Text(
                       'John Silva',
-                      style: GoogleFonts.poppins(color: textColor, fontWeight: FontWeight.w600, fontSize: 15),
+                      style: GoogleFonts.poppins(
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
                     ),
                     Row(
                       children: [
@@ -169,7 +172,11 @@ class _RequestsScreenState extends State<RequestsScreen> {
                         ),
                         Text(
                           'UI Design',
-                          style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -187,17 +194,25 @@ class _RequestsScreenState extends State<RequestsScreen> {
               ),
               Text(
                 'Flutter Development',
-                style: TextStyle(color: primaryPurple, fontWeight: FontWeight.bold, fontSize: 13),
+                style: TextStyle(
+                  color: primaryPurple,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           const Text(
             'Message: "Can you teach me basics?"',
-            style: TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic),
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+            ),
           ),
           const SizedBox(height: 16),
-          
+
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -208,21 +223,39 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryPurple,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
-                  child: const Text('Accept', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                  child: const Text(
+                    'Accept',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               SizedBox(
                 height: 36,
-                child: OutlinedButton( 
+                child: OutlinedButton(
                   onPressed: () {},
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.grey.shade300),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
-                  child: Text('Reject', style: TextStyle(color: textColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    'Reject',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ],
