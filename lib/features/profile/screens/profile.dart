@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../auth/screens/login.dart';
 
 const Color bg = Colors.white;
 const Color primaryDarkPurple = Color(0xFF464275);
@@ -11,34 +14,6 @@ const Color starRatingColor = Color(0xFFFBA100);
 const Color bottomNavActive = Color(0xFF6A9DFB);
 const Color softBlueBg = Color(0xFFEEF2FF);
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'SkillSwap Profile',
-      themeMode: ThemeMode.light,
-      theme: ThemeData(
-        scaffoldBackgroundColor: bg,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: bg,
-          elevation: 0,
-          centerTitle: false,
-          iconTheme: IconThemeData(color: primaryDarkPurple),
-        ),
-        textTheme: GoogleFonts.poppinsTextTheme(),
-      ),
-      home: const ProfileScreen(),
-    );
-  }
-}
-
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -47,11 +22,222 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  bool isLoading = true;
+
+  String userName = "Loading...";
+  String userUniversity = "Loading...";
   String userBio = "";
   List<String> skillsOffered = [];
+  String profileImageUrl = "";
 
-  final String userName = "Irosh Cristeen";
-  final String userUniversity = "NSBM Green University";
+  final List<String> defaultAvatars = [
+    'https://i.pravatar.cc/150?img=11',
+    'https://i.pravatar.cc/150?img=12',
+    'https://i.pravatar.cc/150?img=13',
+    'https://i.pravatar.cc/150?img=14',
+    'https://i.pravatar.cc/150?img=15',
+    'https://i.pravatar.cc/150?img=16',
+    'https://i.pravatar.cc/150?img=17',
+    'https://i.pravatar.cc/150?img=18',
+    'https://i.pravatar.cc/150?img=19',
+    'https://i.pravatar.cc/150?img=32',
+    'https://i.pravatar.cc/150?img=33',
+    'https://i.pravatar.cc/150?img=34',
+    'https://i.pravatar.cc/150?img=35',
+    'https://i.pravatar.cc/150?img=36',
+    'https://i.pravatar.cc/150?img=37',
+    'https://i.pravatar.cc/150?img=38',
+    'https://i.pravatar.cc/150?img=40',
+    'https://i.pravatar.cc/150?img=41',
+    'https://i.pravatar.cc/150?img=42',
+    'https://i.pravatar.cc/150?img=44',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    User? currentUser = _auth.currentUser;
+    
+    if (currentUser != null) {
+      try {
+        DocumentSnapshot userDoc = await _firestore
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
+
+        if (userDoc.exists) {
+          Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+          setState(() {
+            userName = data['name'] ?? currentUser.displayName ?? currentUser.email ?? "No Name";
+            userUniversity = data['university'] ?? "Update your university";
+            userBio = data['bio'] ?? "";
+            skillsOffered = List<String>.from(data['skills'] ?? []);
+            profileImageUrl = data['profileImageUrl'] ?? "";
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            userName = currentUser.displayName ?? currentUser.email ?? "New User";
+            userUniversity = "Update your university";
+            isLoading = false;
+          });
+        }
+      } catch (e) {
+        setState(() {
+          userName = currentUser.email ?? "Error Loading Data";
+          userUniversity = "Check Network/Rules";
+          isLoading = false;
+        });
+      }
+    } else {
+      setState(() {
+        userName = "Not Logged In";
+        userUniversity = "";
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _saveSelectedAvatar(String avatarUrl) async {
+    User? currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      setState(() => isLoading = true);
+      try {
+        await _firestore.collection('users').doc(currentUser.uid).set({
+          'profileImageUrl': avatarUrl,
+        }, SetOptions(merge: true));
+        
+        setState(() {
+          profileImageUrl = avatarUrl;
+          isLoading = false;
+        });
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Avatar updated successfully!")),
+        );
+      } catch (e) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  void _showAvatarSelectionSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.only(
+            top: 20.0,
+            left: 20.0,
+            right: 20.0,
+            bottom: 40.0,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Choose a Professional Avatar",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.5,
+                child: GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    crossAxisSpacing: 15,
+                    mainAxisSpacing: 15,
+                  ),
+                  itemCount: defaultAvatars.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () => _saveSelectedAvatar(defaultAvatars[index]),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: softBlueBg,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: profileImageUrl == defaultAvatars[index]
+                                ? gradientEndTeal
+                                : Colors.transparent,
+                            width: 3,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: Image.network(
+                            defaultAvatars[index],
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: gradientStartBlue,
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Center(
+                                child: Icon(
+                                  Icons.person,
+                                  color: secondaryText,
+                                  size: 30,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _saveBio(String newBio) async {
+    User? currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      await _firestore.collection('users').doc(currentUser.uid).set({
+        'bio': newBio,
+      }, SetOptions(merge: true));
+      setState(() {
+        userBio = newBio;
+      });
+    }
+  }
+
+  Future<void> _saveSkills(List<String> newSkills) async {
+    User? currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      await _firestore.collection('users').doc(currentUser.uid).set({
+        'skills': newSkills,
+      }, SetOptions(merge: true));
+      setState(() {
+        skillsOffered = newSkills;
+      });
+    }
+  }
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
@@ -82,14 +268,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Logged out successfully!"),
-                    backgroundColor: primaryDarkPurple,
-                  ),
-                );
+                await _auth.signOut();
+                if (mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
+                    (route) => false,
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent,
@@ -175,9 +365,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       elevation: 0,
                     ),
                     onPressed: () {
-                      setState(() {
-                        userBio = bioController.text.trim();
-                      });
+                      _saveBio(bioController.text.trim());
                       Navigator.pop(context);
                     },
                     child: const Text(
@@ -201,6 +389,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showEditSkillsSheet() {
     TextEditingController skillController = TextEditingController();
+    List<String> tempSkills = List.from(skillsOffered);
 
     showModalBottomSheet(
       context: context,
@@ -270,12 +459,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPressed: () {
                               if (skillController.text.trim().isNotEmpty) {
                                 setModalState(() {
-                                  skillsOffered.add(
-                                    skillController.text.trim(),
-                                  );
+                                  tempSkills.add(skillController.text.trim());
                                   skillController.clear();
                                 });
-                                setState(() {});
                               }
                             },
                           ),
@@ -286,7 +472,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: skillsOffered.map((skill) {
+                      children: tempSkills.map((skill) {
                         return Chip(
                           label: Text(
                             skill,
@@ -304,9 +490,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           onDeleted: () {
                             setModalState(() {
-                              skillsOffered.remove(skill);
+                              tempSkills.remove(skill);
                             });
-                            setState(() {});
                           },
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
@@ -328,10 +513,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           elevation: 0,
                         ),
                         onPressed: () {
+                          _saveSkills(tempSkills);
                           Navigator.pop(context);
                         },
                         child: const Text(
-                          "Done",
+                          "Done & Save",
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -353,6 +539,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(color: primaryDarkPurple),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -392,29 +587,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 10),
-            Container(
-              height: 120,
-              width: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: primaryDarkPurple,
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryDarkPurple.withOpacity(0.2),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
+            GestureDetector(
+              onTap: _showAvatarSelectionSheet,
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  Container(
+                    height: 120,
+                    width: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: primaryDarkPurple,
+                      image: profileImageUrl.isNotEmpty
+                          ? DecorationImage(
+                              image: NetworkImage(profileImageUrl),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryDarkPurple.withOpacity(0.2),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: profileImageUrl.isEmpty
+                        ? Center(
+                            child: Text(
+                              userName.isNotEmpty
+                                  ? userName[0].toUpperCase()
+                                  : "U",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 50,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: gradientEndTeal,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.edit,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ],
-              ),
-              child: const Center(
-                child: Text(
-                  "I",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 50,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
               ),
             ),
             const SizedBox(height: 15),
