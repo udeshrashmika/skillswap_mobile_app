@@ -257,12 +257,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Logged out successfully!"),
-                    backgroundColor: primaryDarkPurple,
-                  ),
-                );
+                await FirebaseAuth.instance.signOut();
+
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (Route<dynamic> route) => false,
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent,
@@ -555,10 +558,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 30),
-
-            // Updated Skill Section with History Button Inside
             _buildSkillSection(context, "Skills Offered", skillsOffered, true),
-
             const SizedBox(height: 35),
             SizedBox(
               width: double.infinity,
@@ -594,7 +594,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             alignment: WrapAlignment.start,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              // 1. Existing Skills or "Add Skill" Chip
               if (skills.isEmpty)
                 ActionChip(
                   backgroundColor: softBlueBg,
@@ -634,8 +633,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   );
                 }).toList(),
-
-              // 2. NEW History Button (Next to Add Skill button)
               GestureDetector(
                 onTap: () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
