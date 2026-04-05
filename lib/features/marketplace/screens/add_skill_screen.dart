@@ -14,8 +14,10 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
   final _titleController = TextEditingController();
   final _categoryController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _levelController = TextEditingController();
   final _timeController = TextEditingController();
+
+  String? _selectedLevel;
+  final List<String> _skillLevels = ['Beginner', 'Intermediate', 'Advanced', 'Expert'];
 
   bool _isLoading = false;
 
@@ -34,7 +36,6 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
     _titleController.dispose();
     _categoryController.dispose();
     _descriptionController.dispose();
-    _levelController.dispose();
     _timeController.dispose();
     super.dispose();
   }
@@ -42,9 +43,11 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
   Future<void> _publishSkill() async {
     if (_titleController.text.trim().isEmpty ||
         _categoryController.text.trim().isEmpty ||
-        _descriptionController.text.trim().isEmpty) {
+        _descriptionController.text.trim().isEmpty ||
+        _selectedLevel == null ||
+        _timeController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in the required fields.')),
+        const SnackBar(content: Text('Please fill in all the required fields.')),
       );
       return;
     }
@@ -74,7 +77,7 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
         'title': _titleController.text.trim(),
         'category': _categoryController.text.trim(),
         'description': _descriptionController.text.trim(),
-        'level': _levelController.text.trim(),
+        'level': _selectedLevel,
         'time': _timeController.text.trim(),
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -139,7 +142,6 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
                     letterSpacing: 0.5,
                   ),
                 ),
-
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -165,7 +167,6 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
               ],
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
             child: Text(
@@ -173,7 +174,6 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
               style: GoogleFonts.poppins(color: secondaryText, fontSize: 14),
             ),
           ),
-
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -190,12 +190,10 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
                     maxLines: 3,
                   ),
                   const SizedBox(height: 15),
-                  _buildInputField('Skill Level', _levelController),
+                  _buildDropdownField('Skill Level'),
                   const SizedBox(height: 15),
                   _buildInputField('Time Commitment', _timeController),
-
                   const SizedBox(height: 30),
-
                   Row(
                     children: [
                       Expanded(
@@ -280,6 +278,60 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDropdownField(String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            color: textColor,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: inputBgColor,
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: _selectedLevel,
+            icon: const Icon(Icons.keyboard_arrow_down, color: secondaryText),
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: const BorderSide(
+                  color: Color(0xFF818CF8),
+                  width: 1.5,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+            ),
+            style: GoogleFonts.poppins(color: textColor, fontSize: 14),
+            dropdownColor: Colors.white,
+            items: _skillLevels.map((String level) {
+              return DropdownMenuItem<String>(
+                value: level,
+                child: Text(level),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              setState(() {
+                _selectedLevel = newValue;
+              });
+            },
+          ),
+        ),
+      ],
     );
   }
 
