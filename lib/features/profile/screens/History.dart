@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 
 const Color _bg = Color(0xFFFBFBFE);
 const Color _lavender = Color(0xFF818CF8);
@@ -11,7 +12,7 @@ const Color _darkPurple = Color(0xFF464275);
 const Color _starColor = Color(0xFFFBA100);
 
 class SwapEntry {
-  final int id;
+  final String id; 
   final String initials;
   final Color avatarBg;
   final Color avatarFg;
@@ -48,67 +49,50 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final Map<int, int> _pendingRatings = {};
-
-  final List<SwapEntry> _entries = [
-    SwapEntry(
-      id: 1,
-      initials: 'AM',
-      avatarBg: Color(0xFFCECBF6),
-      avatarFg: Color(0xFF3C3489),
-      name: 'Alex Morgan',
-      university: 'NSBM Green University',
-      taughtYou: 'React',
-      youTaught: 'Figma',
-      date: 'Apr 2, 2026',
-      duration: '1h 30m',
-    ),
-    SwapEntry(
-      id: 2,
-      initials: 'NP',
-      avatarBg: Color(0xFF9FE1CB),
-      avatarFg: Color(0xFF085041),
-      name: 'Nina Perez',
-      university: 'Colombo University',
-      taughtYou: 'Flutter',
-      youTaught: 'Illustrator',
-      date: 'Mar 28, 2026',
-      duration: '2h',
-    ),
-    SwapEntry(
-      id: 3,
-      initials: 'JL',
-      avatarBg: Color(0xFFFAC775),
-      avatarFg: Color(0xFF633806),
-      name: 'James Lee',
-      university: 'Moratuwa University',
-      taughtYou: 'Node.js',
-      youTaught: 'UI Design',
-      date: 'Mar 15, 2026',
-      duration: '1h',
-      rated: true,
-      savedRating: 5,
-    ),
-  ];
+  final Map<String, int> _pendingRatings = {}; 
 
   static const List<String> _labels = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'];
 
-  void _submitRating(SwapEntry entry) {
+  
+  late Stream<QuerySnapshot> _historyStream;
+
+ 
+  @override
+  void initState() {
+    super.initState();
+    _historyStream = FirebaseFirestore.instance.collection('swap_history').snapshots();
+  }
+
+  Future<void> _submitRating(SwapEntry entry) async {
     final rating = _pendingRatings[entry.id] ?? 0;
     if (rating == 0) return;
-    setState(() {
-      entry.rated = true;
-      entry.savedRating = rating;
-      _pendingRatings.remove(entry.id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('You rated ${entry.name.split(' ')[0]} $rating star${rating > 1 ? 's' : ''}!'),
-        backgroundColor: _darkPurple,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('swap_history')
+          .doc(entry.id)
+          .update({
+        'rated': true,
+        'savedRating': rating,
+      });
+
+      setState(() {
+        _pendingRatings.remove(entry.id);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You rated ${entry.name.split(' ')[0]} $rating star${rating > 1 ? 's' : ''}!'),
+          backgroundColor: _darkPurple,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to submit rating: $e')),
+      );
+    }
   }
 
   @override
@@ -132,19 +116,57 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            child: Text(
-              'Rate the people you learned from',
-              style: GoogleFonts.poppins(color: _secondaryText, fontSize: 13),
-            ),
-          ),
-          const SizedBox(height: 8),
-          ..._entries.map((e) => _buildCard(e)),
-        ],
+      
+      
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _historyStream, 
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: _darkPurple));
+          }
+          
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(
+              child: Text(
+                'No swap history found.',
+                style: GoogleFonts.poppins(color: _secondaryText),
+              ),
+            );
+          }
+
+          final entries = snapshot.data!.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return SwapEntry(
+              id: doc.id,
+              initials: data['initials'] ?? 'NA',
+              avatarBg: Color(data['avatarBg'] ?? 0xFFCECBF6), 
+              avatarFg: Color(data['avatarFg'] ?? 0xFF3C3489),
+              name: data['name'] ?? 'Unknown User',
+              university: data['university'] ?? 'Unknown University',
+              taughtYou: data['taughtYou'] ?? 'N/A',
+              youTaught: data['youTaught'] ?? 'N/A',
+              date: data['date'] ?? '',
+              duration: data['duration'] ?? '',
+              rated: data['rated'] ?? false,
+              savedRating: data['savedRating'] ?? 0,
+            );
+          }).toList();
+
+          return ListView(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                child: Text(
+                  'Rate the people you learned from',
+                  style: GoogleFonts.poppins(color: _secondaryText, fontSize: 13),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...entries.map((e) => _buildCard(e)),
+            ],
+          );
+        },
       ),
     );
   }
@@ -163,7 +185,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row
           Row(
             children: [
               CircleAvatar(
@@ -196,7 +217,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
           const SizedBox(height: 14),
 
-          // Skill pills row
           Row(
             children: [
               Expanded(child: _skillBox('They taught you', entry.taughtYou, true)),
@@ -207,7 +227,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
           const SizedBox(height: 12),
 
-          // Date & duration
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -218,7 +237,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
           const Divider(height: 24, thickness: 0.5),
 
-          // Rating section
           entry.rated ? _ratedSection(entry.savedRating) : _ratingInput(entry, pending),
         ],
       ),
