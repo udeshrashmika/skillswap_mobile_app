@@ -72,13 +72,21 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           builder: (context) => const ProfileScreen(),
                         ),
                       ),
-                      child: CircleAvatar(
-                        radius: 25,
-                        backgroundColor: lavenderAccent.withOpacity(0.1),
-                        backgroundImage: NetworkImage(
-                          FirebaseAuth.instance.currentUser?.photoURL ??
-                              'https://i.pravatar.cc/150?u=me',
-                        ),
+                      child: StreamBuilder<DocumentSnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(FirebaseAuth.instance.currentUser?.uid)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          String url =
+                              snapshot.data?.get('profileImageUrl') ??
+                              'https://i.pravatar.cc/150?u=me';
+                          return CircleAvatar(
+                            radius: 25,
+                            backgroundColor: lavenderAccent.withOpacity(0.1),
+                            backgroundImage: NetworkImage(url),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -102,8 +110,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     ],
                   ),
                   child: TextField(
-                    onChanged: (value) =>
-                        setState(() => searchQuery = value.toLowerCase()),
+                    onChanged: (value) => setState(() => searchQuery = value),
                     decoration: const InputDecoration(
                       icon: Icon(Icons.search, color: lavenderAccent),
                       hintText: "Find a lesson...",
@@ -141,13 +148,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                               : FontWeight.w500,
                           color: isSelected ? Colors.white : secondaryText,
                         ),
-                        shape: StadiumBorder(
-                          side: BorderSide(
-                            color: isSelected
-                                ? lavenderAccent
-                                : Colors.transparent,
-                          ),
-                        ),
+                        shape: const StadiumBorder(),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
@@ -171,27 +172,45 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           .collection('skills')
                           .snapshots(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting)
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return const Center(
-                            child: CircularProgressIndicator(),
+                            child: CircularProgressIndicator(
+                              color: lavenderAccent,
+                            ),
                           );
-                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+                        }
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                           return _buildEmptyState("No skills found");
+                        }
 
-                        var docs = snapshot.data!.docs.where((d) {
-                          var title = d['title'].toString().toLowerCase();
-                          var cat = d['category'].toString();
-                          return title.contains(searchQuery) &&
-                              (selectedCategory == "All" ||
-                                  cat == selectedCategory);
+                        var filteredDocs = snapshot.data!.docs.where((d) {
+                          var data = d.data() as Map<String, dynamic>;
+                          String title = (data['title'] ?? "")
+                              .toString()
+                              .toLowerCase();
+                          String category = (data['category'] ?? "").toString();
+
+                          String cleanQuery = searchQuery.trim().toLowerCase();
+
+                          bool matchesSearch = title.contains(cleanQuery);
+                          bool matchesCategory =
+                              selectedCategory == "All" ||
+                              category == selectedCategory;
+
+                          return matchesSearch && matchesCategory;
                         }).toList();
+
+                        if (filteredDocs.isEmpty) {
+                          return _buildEmptyState("No matching skills found");
+                        }
 
                         return ListView.builder(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.only(left: 20),
-                          itemCount: docs.length,
+                          itemCount: filteredDocs.length,
                           itemBuilder: (context, index) =>
-                              _buildFeaturedCard(index, docs[index]),
+                              _buildFeaturedCard(index, filteredDocs[index]),
                         );
                       },
                     ),
@@ -210,11 +229,24 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               stream: FirebaseFirestore.instance
                   .collection('users')
                   .orderBy('rating', descending: true)
-                  .limit(5)
+                  .limit(10)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
-                  return const SliverToBoxAdapter(child: SizedBox());
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: _buildEmptyState("No student ratings yet"),
+                  );
+                }
                 return SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   sliver: SliverList(
@@ -326,58 +358,76 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
   Widget _buildTeacherTile(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
-        ],
+    String uid = doc.id;
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ProfileScreen(uid: uid)),
       ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 25,
-            backgroundImage: NetworkImage(
-              data['profilePic'] ?? 'https://i.pravatar.cc/150',
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 25,
+              backgroundImage: NetworkImage(
+                data['profileImageUrl'] ??
+                    'https://ui-avatars.com/api/?name=${data['name'] ?? 'User'}',
+              ),
             ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  data['name'] ?? 'User',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data['name'] ?? 'User',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
                   ),
-                ),
-                Text(
-                  data['bio'] ?? 'Student',
-                  style: const TextStyle(color: secondaryText, fontSize: 12),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                  Text(
+                    data['university'] ?? 'SkillSwap Student',
+                    style: const TextStyle(color: secondaryText, fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const Icon(Icons.star_rounded, color: Colors.orange, size: 20),
-          Text(
-            " ${data['rating'] ?? '0.0'}",
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
+            const Icon(Icons.star_rounded, color: Colors.orange, size: 20),
+            Text(
+              " ${(data['rating'] ?? 0.0).toStringAsFixed(1)}",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildEmptyState(String message) {
     return Center(
-      child: Text(message, style: const TextStyle(color: secondaryText)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Text(
+          message,
+          style: const TextStyle(
+            color: secondaryText,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ),
     );
   }
 }

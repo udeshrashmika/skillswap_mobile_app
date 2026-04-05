@@ -5,18 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../auth/screens/login.dart';
 
-const Color bg = Colors.white;
-const Color primaryDarkPurple = Color(0xFF464275);
-const Color gradientStartBlue = Color(0xFF799AF8);
-const Color gradientEndTeal = Color(0xFF4CC2C7);
-const Color textColor = Color(0xFF1E2432);
-const Color secondaryText = Color(0xFF8E95A4);
-const Color starRatingColor = Color(0xFFFBA100);
-const Color bottomNavActive = Color(0xFF6A9DFB);
-const Color softBlueBg = Color(0xFFEEF2FF);
-
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? uid;
+  const ProfileScreen({super.key, this.uid});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -26,640 +17,547 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  bool isLoading = true;
+  static const Color primaryDarkPurple = Color(0xFF464275);
+  static const Color gradientStartBlue = Color(0xFF799AF8);
+  static const Color gradientEndTeal = Color(0xFF4CC2C7);
+  static const Color textColor = Color(0xFF1E2432);
+  static const Color secondaryText = Color(0xFF8E95A4);
+  static const Color starRatingColor = Color(0xFFFBA100);
+  static const Color softBlueBg = Color(0xFFF8FAFF);
 
-  String userName = "Loading...";
-  String userUniversity = "Loading...";
-  String userBio = "";
-  List<String> skillsOffered = [];
-  String profileImageUrl = "";
+  late String targetUid;
+  bool isMe = false;
 
   final List<String> defaultAvatars = [
     'https://i.pravatar.cc/150?img=11',
     'https://i.pravatar.cc/150?img=12',
     'https://i.pravatar.cc/150?img=13',
     'https://i.pravatar.cc/150?img=14',
-    'https://i.pravatar.cc/150?img=15',
-    'https://i.pravatar.cc/150?img=16',
-    'https://i.pravatar.cc/150?img=17',
-    'https://i.pravatar.cc/150?img=18',
-    'https://i.pravatar.cc/150?img=19',
     'https://i.pravatar.cc/150?img=32',
     'https://i.pravatar.cc/150?img=33',
-    'https://i.pravatar.cc/150?img=34',
-    'https://i.pravatar.cc/150?img=35',
-    'https://i.pravatar.cc/150?img=36',
-    'https://i.pravatar.cc/150?img=37',
-    'https://i.pravatar.cc/150?img=38',
-    'https://i.pravatar.cc/150?img=40',
-    'https://i.pravatar.cc/150?img=41',
-    'https://i.pravatar.cc/150?img=42',
     'https://i.pravatar.cc/150?img=44',
+    'https://i.pravatar.cc/150?img=45',
   ];
 
   @override
   void initState() {
     super.initState();
-    _fetchUserData();
+    targetUid = widget.uid ?? _auth.currentUser!.uid;
+    isMe = targetUid == _auth.currentUser?.uid;
   }
 
-  Future<void> _fetchUserData() async {
-    User? currentUser = _auth.currentUser;
-    
-    if (currentUser != null) {
-      try {
-        DocumentSnapshot userDoc = await _firestore
-            .collection('users')
-            .doc(currentUser.uid)
-            .get();
+  Future<void> _saveBio(String newBio) async => await _firestore
+      .collection('users')
+      .doc(targetUid)
+      .update({'bio': newBio});
+  Future<void> _saveSkills(List<String> newSkills) async => await _firestore
+      .collection('users')
+      .doc(targetUid)
+      .update({'skills': newSkills});
+  Future<void> _saveAvatar(String url) async {
+    await _firestore.collection('users').doc(targetUid).update({
+      'profileImageUrl': url,
+    });
+    Navigator.pop(context);
+  }
 
-        if (userDoc.exists) {
-          Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
-          setState(() {
-            userName = data['name'] ?? currentUser.displayName ?? currentUser.email ?? "No Name";
-            userUniversity = data['university'] ?? "Update your university";
-            userBio = data['bio'] ?? "";
-            skillsOffered = List<String>.from(data['skills'] ?? []);
-            profileImageUrl = data['profileImageUrl'] ?? "";
-            isLoading = false;
-          });
-        } else {
-          setState(() {
-            userName = currentUser.displayName ?? currentUser.email ?? "New User";
-            userUniversity = "Update your university";
-            isLoading = false;
-          });
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _firestore.collection('users').doc(targetUid).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(
+              child: CircularProgressIndicator(color: primaryDarkPurple),
+            ),
+          );
         }
-      } catch (e) {
-        setState(() {
-          userName = currentUser.email ?? "Error Loading Data";
-          userUniversity = "Check Network/Rules";
-          isLoading = false;
-        });
-      }
-    } else {
-      setState(() {
-        userName = "Not Logged In";
-        userUniversity = "";
-        isLoading = false;
-      });
-    }
-  }
+        if (!snapshot.hasData || !snapshot.data!.exists)
+          return const Scaffold(body: Center(child: Text("Profile Not Found")));
 
-  Future<void> _saveSelectedAvatar(String avatarUrl) async {
-    User? currentUser = _auth.currentUser;
-    if (currentUser != null) {
-      setState(() => isLoading = true);
-      try {
-        await _firestore.collection('users').doc(currentUser.uid).set({
-          'profileImageUrl': avatarUrl,
-        }, SetOptions(merge: true));
-        
-        setState(() {
-          profileImageUrl = avatarUrl;
-          isLoading = false;
-        });
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Avatar updated successfully!")),
-        );
-      } catch (e) {
-        setState(() => isLoading = false);
-      }
-    }
-  }
+        var data = snapshot.data!.data() as Map<String, dynamic>;
+        String name = data['name'] ?? "User";
+        String bio = data['bio'] ?? "";
+        List<String> skills = List<String>.from(data['skills'] ?? []);
+        String profilePic = data['profileImageUrl'] ?? "";
+        double rating = (data['rating'] ?? 0.0).toDouble();
+        int reviewCount = data['reviewCount'] ?? 0;
 
-  void _showAvatarSelectionSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.only(
-            top: 20.0,
-            left: 20.0,
-            right: 20.0,
-            bottom: 40.0,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "Choose a Professional Avatar",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: primaryDarkPurple),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              isMe ? "My Profile" : "Profile",
+              style: GoogleFonts.poppins(
+                color: textColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.5,
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 15,
-                    mainAxisSpacing: 15,
-                  ),
-                  itemCount: defaultAvatars.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () => _saveSelectedAvatar(defaultAvatars[index]),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: softBlueBg,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: profileImageUrl == defaultAvatars[index]
-                                ? gradientEndTeal
-                                : Colors.transparent,
-                            width: 3,
+            ),
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+
+                Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    Container(
+                      height: 120,
+                      width: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: primaryDarkPurple,
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryDarkPurple.withOpacity(0.2),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
                           ),
-                        ),
-                        child: ClipOval(
-                          child: Image.network(
-                            defaultAvatars[index],
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: gradientStartBlue,
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: profilePic.isNotEmpty
+                            ? Image.network(profilePic, fit: BoxFit.cover)
+                            : Center(
+                                child: Text(
+                                  name[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 50,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Center(
-                                child: Icon(
-                                  Icons.person,
-                                  color: secondaryText,
-                                  size: 30,
-                                ),
-                              );
-                            },
+                              ),
+                      ),
+                    ),
+                    if (isMe)
+                      GestureDetector(
+                        onTap: _showAvatarSelectionSheet,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: gradientEndTeal,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 18,
                           ),
                         ),
                       ),
-                    );
-                  },
+                  ],
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 15),
+                Text(
+                  name,
+                  style: GoogleFonts.poppins(
+                    color: textColor,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  data['university'] ?? "SkillSwap Member",
+                  style: GoogleFonts.poppins(
+                    color: secondaryText,
+                    fontSize: 15,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.star_rounded,
+                      color: starRatingColor,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      "$rating ($reviewCount reviews)",
+                      style: GoogleFonts.poppins(
+                        color: secondaryText,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 30),
+
+                _buildSectionHeader(
+                  "About Me",
+                  isMe ? () => _showEditBioSheet(bio) : null,
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                    border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                  ),
+                  child: Text(
+                    bio.isEmpty ? "Tell us about yourself!" : bio,
+                    style: GoogleFonts.poppins(
+                      color: textColor,
+                      fontSize: 14,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                _buildSectionHeader(
+                  "Skills Offered",
+                  isMe ? () => _showEditSkillsSheet(skills) : null,
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      if (skills.isEmpty)
+                        const Text("No skills added yet.")
+                      else
+                        ...skills.map((s) => _buildSkillChip(s)),
+                      if (isMe) _buildHistoryButton(),
+                    ],
+                  ),
+                ),
+
+                if (isMe) ...[
+                  const SizedBox(height: 45),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => _showLogoutDialog(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                        side: const BorderSide(
+                          color: Colors.redAccent,
+                          width: 1.5,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                      child: const Text(
+                        "Logout",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Future<void> _saveBio(String newBio) async {
-    User? currentUser = _auth.currentUser;
-    if (currentUser != null) {
-      await _firestore.collection('users').doc(currentUser.uid).set({
-        'bio': newBio,
-      }, SetOptions(merge: true));
-      setState(() {
-        userBio = newBio;
-      });
-    }
+  Widget _buildSectionHeader(String title, VoidCallback? onEdit) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.poppins(
+            color: textColor,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        if (onEdit != null)
+          GestureDetector(
+            onTap: onEdit,
+            child: const Icon(Icons.edit_note, color: secondaryText, size: 28),
+          ),
+      ],
+    );
   }
 
-  Future<void> _saveSkills(List<String> newSkills) async {
-    User? currentUser = _auth.currentUser;
-    if (currentUser != null) {
-      await _firestore.collection('users').doc(currentUser.uid).set({
-        'skills': newSkills,
-      }, SetOptions(merge: true));
-      setState(() {
-        skillsOffered = newSkills;
-      });
-    }
+  Widget _buildSkillChip(String skill) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [gradientStartBlue, gradientEndTeal],
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle_outline, color: Colors.white, size: 14),
+          const SizedBox(width: 8),
+          Text(
+            skill,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryButton() {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const HistoryScreen()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: primaryDarkPurple.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.history_rounded, color: primaryDarkPurple, size: 18),
+            SizedBox(width: 6),
+            Text(
+              "History",
+              style: TextStyle(
+                color: primaryDarkPurple,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text("Logout", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-          content: const Text("Are you sure you want to logout from your account?", style: TextStyle(color: secondaryText)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Cancel", style: TextStyle(color: secondaryText, fontWeight: FontWeight.w600)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-                await FirebaseAuth.instance.signOut();
-
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    (Route<dynamic> route) => false,
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Text("Logout", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-            ),
-          ],
-        );
-      },
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Logout"),
+        content: const Text("Are you sure you want to exit?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () async {
+              await _auth.signOut();
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (c) => const LoginScreen()),
+                (r) => false,
+              );
+            },
+            child: const Text("Logout", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
-  void _showEditBioSheet() {
-    TextEditingController bioController = TextEditingController(text: userBio);
-
+  void _showAvatarSelectionSheet() {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20, right: 20, top: 20,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (c) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: GridView.builder(
+          shrinkWrap: true,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            crossAxisSpacing: 15,
+            mainAxisSpacing: 15,
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Center(
-                  child: Text("Edit About Me", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: bioController,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText: "Write a short bio about yourself...",
-                    hintStyle: const TextStyle(color: secondaryText, fontSize: 13),
-                    filled: true,
-                    fillColor: softBlueBg,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryDarkPurple,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 0,
-                    ),
-                    onPressed: () {
-                      _saveBio(bioController.text.trim());
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Save Bio", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
+          itemCount: defaultAvatars.length,
+          itemBuilder: (c, i) => GestureDetector(
+            onTap: () => _saveAvatar(defaultAvatars[i]),
+            child: CircleAvatar(
+              backgroundImage: NetworkImage(defaultAvatars[i]),
             ),
           ),
-        );
-      },
-    );
-  }
-
-  void _showEditSkillsSheet() {
-    TextEditingController skillController = TextEditingController();
-    List<String> tempSkills = List.from(skillsOffered);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 20, right: 20, top: 20,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Center(
-                      child: Text("Edit Skills Offered", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: skillController,
-                            decoration: InputDecoration(
-                              hintText: "Add a skill (e.g. Figma)",
-                              hintStyle: const TextStyle(color: secondaryText, fontSize: 13),
-                              filled: true,
-                              fillColor: softBlueBg,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          decoration: const BoxDecoration(color: gradientEndTeal, shape: BoxShape.circle),
-                          child: IconButton(
-                            icon: const Icon(Icons.add, color: Colors.white),
-                            onPressed: () {
-                              if (skillController.text.trim().isNotEmpty) {
-                                setModalState(() {
-                                  skillsOffered.add(
-                                    skillController.text.trim(),
-                                  );
-                                  skillController.clear();
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 15),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: tempSkills.map((skill) {
-                        return Chip(
-                          label: Text(skill, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-                          backgroundColor: bottomNavActive,
-                          deleteIcon: const Icon(Icons.close, color: Colors.white, size: 16),
-                          onDeleted: () {
-                            setModalState(() {
-                              tempSkills.remove(skill);
-                            });
-                          },
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 30),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryDarkPurple,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          elevation: 0,
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text(
-                          "Done",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: CircularProgressIndicator(color: primaryDarkPurple),
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: primaryDarkPurple),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          "My Profile",
-          style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 20),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+    );
+  }
+
+  void _showEditBioSheet(String currentBio) {
+    TextEditingController controller = TextEditingController(text: currentBio);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (c) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(c).viewInsets.bottom,
+          left: 24,
+          right: 24,
+          top: 24,
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 10),
-            Container(
-              height: 120,
-              width: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: primaryDarkPurple,
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryDarkPurple.withOpacity(0.2),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Text(
-                  "I",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 50,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+            Text(
+              "Edit Bio",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
               ),
             ),
             const SizedBox(height: 15),
-            Text(userName, style: const TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(userUniversity, style: const TextStyle(color: secondaryText, fontSize: 15)),
-            const SizedBox(height: 12),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.star_rounded, color: starRatingColor, size: 24),
-                SizedBox(width: 4),
-                Text("4.8 (32 reviews)", style: TextStyle(color: secondaryText, fontSize: 16, fontWeight: FontWeight.w600)),
-              ],
-            ),
-            const SizedBox(height: 25),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8))],
-                border: Border.all(color: Colors.grey.withOpacity(0.1)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("About Me", style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold)),
-                      GestureDetector(
-                        onTap: _showEditBioSheet,
-                        child: const Icon(Icons.edit_note, color: secondaryText),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  userBio.isEmpty
-                      ? GestureDetector(
-                          onTap: _showEditBioSheet,
-                          child: const Text(
-                            "Tell us about yourself! Click here or the edit icon to add a short bio.",
-                            style: TextStyle(color: secondaryText, fontStyle: FontStyle.italic, fontSize: 14),
-                          ),
-                        )
-                      : Text(userBio, style: const TextStyle(color: textColor, fontSize: 14, height: 1.5)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            _buildSkillSection(context, "Skills Offered", skillsOffered, true),
-            const SizedBox(height: 35),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => _showLogoutDialog(context),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.redAccent,
-                  side: const BorderSide(color: Colors.redAccent, width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            TextField(
+              controller: controller,
+              maxLines: 4,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: softBlueBg,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
                 ),
-                child: const Text("Logout", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryDarkPurple,
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+              onPressed: () {
+                _saveBio(controller.text.trim());
+                Navigator.pop(c);
+              },
+              child: const Text(
+                "Save Changes",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSkillSection(BuildContext context, String title, List<String> skills, bool useGradient) {
-    return SizedBox(
-      width: double.infinity,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10.0,
-            runSpacing: 10.0,
-            alignment: WrapAlignment.start,
-            crossAxisAlignment: WrapCrossAlignment.center,
+  void _showEditSkillsSheet(List<String> currentSkills) {
+    TextEditingController controller = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (c) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(c).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              if (skills.isEmpty)
-                ActionChip(
-                  backgroundColor: softBlueBg,
-                  side: BorderSide.none,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  label: const Text("+ Add your first skill", style: TextStyle(color: bottomNavActive, fontWeight: FontWeight.bold)),
-                  onPressed: _showEditSkillsSheet,
-                )
-              else
-                ...skills.map<Widget>((skill) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: useGradient ? null : softBlueBg,
-                      gradient: useGradient
-                          ? const LinearGradient(
-                              colors: [gradientStartBlue, gradientEndTeal],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            )
-                          : null,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (useGradient) ...[
-                          const CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 8,
-                            child: Icon(Icons.check, color: gradientEndTeal, size: 10),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        Text(skill, style: TextStyle(color: useGradient ? Colors.white : bottomNavActive, fontWeight: FontWeight.w600, fontSize: 13)),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: primaryDarkPurple.withOpacity(0.3)),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.history_rounded, color: primaryDarkPurple, size: 18),
-                      SizedBox(width: 6),
-                      Text(
-                        "History",
-                        style: TextStyle(color: primaryDarkPurple, fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    ],
-                  ),
+              Text(
+                "Manage Skills",
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
                 ),
               ),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      decoration: const InputDecoration(
+                        hintText: "Add skill (e.g. Figma)",
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle, color: gradientEndTeal),
+                    onPressed: () {
+                      if (controller.text.isNotEmpty) {
+                        setModalState(
+                          () => currentSkills.add(controller.text.trim()),
+                        );
+                        _saveSkills(currentSkills);
+                        controller.clear();
+                      }
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                children: currentSkills
+                    .map(
+                      (s) => Chip(
+                        label: Text(s),
+                        onDeleted: () {
+                          setModalState(() => currentSkills.remove(s));
+                          _saveSkills(currentSkills);
+                        },
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 20),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

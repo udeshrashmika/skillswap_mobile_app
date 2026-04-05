@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; 
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 const Color _bg = Color(0xFFFBFBFE);
 const Color _lavender = Color(0xFF818CF8);
@@ -12,7 +12,8 @@ const Color _darkPurple = Color(0xFF464275);
 const Color _starColor = Color(0xFFFBA100);
 
 class SwapEntry {
-  final String id; 
+  final String id;
+  final String teacherId;
   final String initials;
   final Color avatarBg;
   final Color avatarFg;
@@ -27,6 +28,7 @@ class SwapEntry {
 
   SwapEntry({
     required this.id,
+    required this.teacherId,
     required this.initials,
     required this.avatarBg,
     required this.avatarFg,
@@ -49,19 +51,15 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final Map<String, int> _pendingRatings = {}; 
-
-  static const List<String> _labels = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'];
-
-  
-  late Stream<QuerySnapshot> _historyStream;
-
- 
-  @override
-  void initState() {
-    super.initState();
-    _historyStream = FirebaseFirestore.instance.collection('swap_history').snapshots();
-  }
+  final Map<String, int> _pendingRatings = {};
+  static const List<String> _labels = [
+    '',
+    'Poor',
+    'Fair',
+    'Good',
+    'Great',
+    'Excellent',
+  ];
 
   Future<void> _submitRating(SwapEntry entry) async {
     final rating = _pendingRatings[entry.id] ?? 0;
@@ -71,27 +69,50 @@ class _HistoryScreenState extends State<HistoryScreen> {
       await FirebaseFirestore.instance
           .collection('swap_history')
           .doc(entry.id)
-          .update({
-        'rated': true,
-        'savedRating': rating,
+          .update({'rated': true, 'savedRating': rating});
+
+      final teacherRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(entry.teacherId);
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot teacherSnap = await transaction.get(teacherRef);
+
+        if (teacherSnap.exists) {
+          Map<String, dynamic> data =
+              teacherSnap.data() as Map<String, dynamic>;
+
+          double currentRating = (data['rating'] ?? 0.0).toDouble();
+          int totalReviews = data['reviewCount'] ?? 0;
+
+          double newRating =
+              ((currentRating * totalReviews) + rating) / (totalReviews + 1);
+
+          transaction.update(teacherRef, {
+            'rating': double.parse(newRating.toStringAsFixed(1)),
+            'reviewCount': totalReviews + 1,
+          });
+        }
       });
 
-      setState(() {
-        _pendingRatings.remove(entry.id);
-      });
+      setState(() => _pendingRatings.remove(entry.id));
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('You rated ${entry.name.split(' ')[0]} $rating star${rating > 1 ? 's' : ''}!'),
+          content: Text(
+            'Profile Updated! You rated ${entry.name.split(' ')[0]} $rating stars.',
+          ),
           backgroundColor: _darkPurple,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to submit rating: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Sync Error: $e')));
     }
   }
 
@@ -101,7 +122,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       backgroundColor: _bg,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: _darkPurple),
@@ -112,34 +132,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
           style: GoogleFonts.poppins(
             color: _textColor,
             fontWeight: FontWeight.bold,
-            fontSize: 20,
+            fontSize: 18,
           ),
         ),
       ),
-      
-      
       body: StreamBuilder<QuerySnapshot>(
-        stream: _historyStream, 
+        stream: FirebaseFirestore.instance
+            .collection('swap_history')
+            .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: _darkPurple));
-          }
-          
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Text(
-                'No swap history found.',
-                style: GoogleFonts.poppins(color: _secondaryText),
-              ),
+          if (snapshot.connectionState == ConnectionState.waiting)
+            return const Center(
+              child: CircularProgressIndicator(color: _darkPurple),
             );
-          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+            return _buildEmptyState();
 
           final entries = snapshot.data!.docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return SwapEntry(
               id: doc.id,
+              teacherId: data['teacherId'] ?? '',
               initials: data['initials'] ?? 'NA',
-              avatarBg: Color(data['avatarBg'] ?? 0xFFCECBF6), 
+              avatarBg: Color(data['avatarBg'] ?? 0xFFCECBF6),
               avatarFg: Color(data['avatarFg'] ?? 0xFF3C3489),
               name: data['name'] ?? 'Unknown User',
               university: data['university'] ?? 'Unknown University',
@@ -152,19 +167,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             );
           }).toList();
 
-          return ListView(
+          return ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                child: Text(
-                  'Rate the people you learned from',
-                  style: GoogleFonts.poppins(color: _secondaryText, fontSize: 13),
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...entries.map((e) => _buildCard(e)),
-            ],
+            itemCount: entries.length,
+            itemBuilder: (context, index) => _buildCard(entries[index]),
           );
         },
       ),
@@ -173,14 +179,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildCard(SwapEntry entry) {
     final pending = _pendingRatings[entry.id] ?? 0;
-
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,56 +195,52 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Row(
             children: [
               CircleAvatar(
-                radius: 24,
                 backgroundColor: entry.avatarBg,
-                child: Text(entry.initials,
-                    style: TextStyle(color: entry.avatarFg, fontWeight: FontWeight.bold, fontSize: 15)),
+                child: Text(
+                  entry.initials,
+                  style: TextStyle(
+                    color: entry.avatarFg,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(entry.name,
-                            style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.bold, color: _textColor, fontSize: 15)),
-                        _statusBadge(entry.rated),
-                      ],
+                    Text(
+                      entry.name,
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
-                    Text(entry.university,
-                        style: const TextStyle(color: _secondaryText, fontSize: 12)),
+                    Text(
+                      entry.university,
+                      style: const TextStyle(
+                        color: _secondaryText,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
+              _statusBadge(entry.rated),
             ],
           ),
-
-          const SizedBox(height: 14),
-
+          const SizedBox(height: 15),
           Row(
             children: [
-              Expanded(child: _skillBox('They taught you', entry.taughtYou, true)),
+              Expanded(child: _skillBox('Learned', entry.taughtYou, true)),
               const SizedBox(width: 8),
-              Expanded(child: _skillBox('You taught them', entry.youTaught, false)),
+              Expanded(child: _skillBox('Taught', entry.youTaught, false)),
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(entry.date, style: const TextStyle(color: _secondaryText, fontSize: 12)),
-              Text(entry.duration, style: const TextStyle(color: _secondaryText, fontSize: 12)),
-            ],
-          ),
-
-          const Divider(height: 24, thickness: 0.5),
-
-          entry.rated ? _ratedSection(entry.savedRating) : _ratingInput(entry, pending),
+          const Divider(height: 24),
+          entry.rated
+              ? _ratedSection(entry.savedRating)
+              : _ratingInput(entry, pending),
         ],
       ),
     );
@@ -245,51 +248,42 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _statusBadge(bool rated) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: rated ? const Color(0xFFE1F5EE) : _softPurple,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         rated ? 'Rated' : 'Pending',
         style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
           color: rated ? const Color(0xFF0F6E56) : _lavender,
         ),
       ),
     );
   }
 
-  Widget _skillBox(String label, String skill, bool gradient) {
+  Widget _skillBox(String label, String skill, bool isMain) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: _bg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: _secondaryText, fontSize: 11)),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              gradient: gradient
-                  ? const LinearGradient(colors: [_lavender, _teal])
-                  : null,
-              color: gradient ? null : _softPurple,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              skill,
-              style: TextStyle(
-                color: gradient ? Colors.white : _darkPurple,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: _secondaryText),
+          ),
+          Text(
+            skill,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isMain ? _lavender : _darkPurple,
             ),
           ),
         ],
@@ -298,26 +292,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _ratedSection(int rating) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        const Text('Your rating',
-            style: TextStyle(color: _secondaryText, fontSize: 12)),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            ...List.generate(5, (i) => Icon(
-              Icons.star_rounded,
-              size: 22,
-              color: i < rating ? _starColor : const Color(0xFFE2E8F0),
-            )),
-            const SizedBox(width: 8),
-            Text(
-              ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'][rating],
-              style: GoogleFonts.poppins(
-                  fontSize: 13, fontWeight: FontWeight.w600, color: _textColor),
-            ),
-          ],
+        ...List.generate(
+          5,
+          (i) => Icon(
+            Icons.star_rounded,
+            size: 20,
+            color: i < rating ? _starColor : const Color(0xFFE2E8F0),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          'You rated this session ${rating}/5',
+          style: const TextStyle(fontSize: 12, color: _secondaryText),
         ),
       ],
     );
@@ -327,54 +315,47 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'How was your session with ${entry.name.split(' ')[0]}?',
-          style: const TextStyle(color: _secondaryText, fontSize: 12),
-        ),
-        const SizedBox(height: 10),
         Row(
           children: [
-            ...List.generate(5, (i) {
-              final val = i + 1;
-              return GestureDetector(
-                onTap: () => setState(() => _pendingRatings[entry.id] = val),
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: Icon(
-                    Icons.star_rounded,
-                    size: 32,
-                    color: val <= pending ? _starColor : const Color(0xFFE2E8F0),
-                  ),
+            ...List.generate(
+              5,
+              (i) => GestureDetector(
+                onTap: () => setState(() => _pendingRatings[entry.id] = i + 1),
+                child: Icon(
+                  Icons.star_rounded,
+                  size: 30,
+                  color: i < pending ? _starColor : const Color(0xFFE2E8F0),
                 ),
-              );
-            }),
-            const SizedBox(width: 8),
+              ),
+            ),
+            const SizedBox(width: 10),
             if (pending > 0)
               Text(
                 _labels[pending],
                 style: GoogleFonts.poppins(
-                    fontSize: 13, fontWeight: FontWeight.w600, color: _lavender),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: _lavender,
+                ),
               ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
             onPressed: pending > 0 ? () => _submitRating(entry) : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: _darkPurple,
-              disabledBackgroundColor: const Color(0xFFE2E8F0),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: Text(
-              'Submit Rating',
-              style: GoogleFonts.poppins(
-                color: pending > 0 ? Colors.white : const Color(0xFFAAAAAA),
+            child: const Text(
+              'Submit Feedback',
+              style: TextStyle(
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 15,
               ),
             ),
           ),
@@ -382,4 +363,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ],
     );
   }
+
+  Widget _buildEmptyState() => Center(
+    child: Text(
+      'No swaps found yet.',
+      style: GoogleFonts.poppins(color: _secondaryText),
+    ),
+  );
 }
