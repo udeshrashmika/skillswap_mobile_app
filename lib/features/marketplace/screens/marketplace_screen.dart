@@ -1,6 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import 'package:skillswap/features/profile/screens/profile.dart';
 
 class MarketplaceScreen extends StatefulWidget {
@@ -16,6 +17,18 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   static const Color tealAccent = Color(0xFF2DD4BF);
   static const Color textColor = Color(0xFF1E293B);
   static const Color secondaryText = Color(0xFF64748B);
+  static const Color unselectedChipBg = Color(0xFFF1F5F9);
+
+  String searchQuery = "";
+  String selectedCategory = "All";
+  final List<String> categories = [
+    "All",
+    "Coding",
+    "Design",
+    "Music",
+    "Art",
+    "Language",
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +36,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       backgroundColor: bg,
       body: SafeArea(
         child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
@@ -34,7 +48,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Hi, Welcome!",
+                          "Hi, ${FirebaseAuth.instance.currentUser?.displayName ?? 'Welcome'}!",
                           style: GoogleFonts.poppins(
                             color: lavenderAccent,
                             fontWeight: FontWeight.bold,
@@ -51,26 +65,22 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         ),
                       ],
                     ),
-                    
-                    
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ProfileScreen(), 
-                          ),
-                        );
-                      },
-                      child: const CircleAvatar(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProfileScreen(),
+                        ),
+                      ),
+                      child: CircleAvatar(
                         radius: 25,
+                        backgroundColor: lavenderAccent.withOpacity(0.1),
                         backgroundImage: NetworkImage(
-                          'https://i.pravatar.cc/150?u=me',
+                          FirebaseAuth.instance.currentUser?.photoURL ??
+                              'https://i.pravatar.cc/150?u=me',
                         ),
                       ),
                     ),
-                    
-                    
                   ],
                 ),
               ),
@@ -81,7 +91,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  height: 50,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(15),
@@ -92,16 +101,60 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       ),
                     ],
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.search, color: lavenderAccent),
-                      SizedBox(width: 10),
-                      Text(
-                        "Find a lesson...",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
+                  child: TextField(
+                    onChanged: (value) =>
+                        setState(() => searchQuery = value.toLowerCase()),
+                    decoration: const InputDecoration(
+                      icon: Icon(Icons.search, color: lavenderAccent),
+                      hintText: "Find a lesson...",
+                      border: InputBorder.none,
+                    ),
                   ),
+                ),
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 70,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(left: 20, top: 15),
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    bool isSelected = selectedCategory == categories[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: ChoiceChip(
+                        label: Text(categories[index]),
+                        selected: isSelected,
+                        onSelected: (val) => setState(
+                          () => selectedCategory = categories[index],
+                        ),
+                        selectedColor: lavenderAccent,
+                        backgroundColor: unselectedChipBg,
+                        showCheckmark: false,
+                        labelStyle: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                          color: isSelected ? Colors.white : secondaryText,
+                        ),
+                        shape: StadiumBorder(
+                          side: BorderSide(
+                            color: isSelected
+                                ? lavenderAccent
+                                : Colors.transparent,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -110,25 +163,37 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
-                    child: Text(
-                      "Featured Skills",
-                      style: GoogleFonts.poppins(
-                        color: textColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
+                  _buildSectionHeader("Featured Skills"),
                   SizedBox(
-                    height: 200,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.only(left: 20),
-                      itemCount: 3,
-                      itemBuilder: (context, index) =>
-                          _buildFeaturedCard(index),
+                    height: 220,
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('skills')
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting)
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+                          return _buildEmptyState("No skills found");
+
+                        var docs = snapshot.data!.docs.where((d) {
+                          var title = d['title'].toString().toLowerCase();
+                          var cat = d['category'].toString();
+                          return title.contains(searchQuery) &&
+                              (selectedCategory == "All" ||
+                                  cat == selectedCategory);
+                        }).toList();
+
+                        return ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(left: 20),
+                          itemCount: docs.length,
+                          itemBuilder: (context, index) =>
+                              _buildFeaturedCard(index, docs[index]),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -136,39 +201,122 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             ),
 
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Top Rated Students",
-                      style: GoogleFonts.poppins(
-                        color: textColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const Text(
-                      "View All",
-                      style: TextStyle(
-                        color: tealAccent,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+              child: _buildSectionHeader(
+                "Top Rated Students",
+                hasViewAll: true,
               ),
             ),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .orderBy('rating', descending: true)
+                  .limit(5)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData)
+                  return const SliverToBoxAdapter(child: SizedBox());
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) =>
+                          _buildTeacherTile(snapshot.data!.docs[index]),
+                      childCount: snapshot.data!.docs.length,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 30)),
+          ],
+        ),
+      ),
+    );
+  }
 
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => _buildTeacherTile(index),
-                  childCount: 4,
-                ),
+  Widget _buildSectionHeader(String title, {bool hasViewAll = false}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          if (hasViewAll)
+            const Text(
+              "View All",
+              style: TextStyle(color: tealAccent, fontWeight: FontWeight.bold),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeaturedCard(int index, DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(right: 15, bottom: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(25),
+        gradient: LinearGradient(
+          colors: index % 2 == 0
+              ? [lavenderAccent, const Color(0xFF6366F1)]
+              : [tealAccent, const Color(0xFF0EA5E9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: lavenderAccent.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              (data['category'] ?? "SKILL").toString().toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
               ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              data['title'] ?? "Untitled",
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "${data['level'] ?? ''} • ${data['time'] ?? ''}",
+              style: const TextStyle(color: Colors.white60, fontSize: 12),
+            ),
+            const Spacer(),
+            ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: lavenderAccent,
+                shape: const StadiumBorder(),
+              ),
+              child: const Text("View Details"),
             ),
           ],
         ),
@@ -176,75 +324,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     );
   }
 
-  Widget _buildFeaturedCard(int index) {
+  Widget _buildTeacherTile(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Container(
-      width: 300,
-      margin: const EdgeInsets.only(right: 15),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        gradient: LinearGradient(
-          colors: index == 0
-              ? [lavenderAccent, tealAccent]
-              : [Colors.blue, Colors.lightBlueAccent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -20,
-            bottom: -20,
-            child: Icon(
-              Icons.psychology,
-              size: 150,
-              color: Colors.white.withOpacity(0.2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "NEW TREND",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  "Mastering\nFigma Layouts",
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 20,
-                  ),
-                ),
-                const Spacer(),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: lavenderAccent,
-                    shape: const StadiumBorder(),
-                  ),
-                  child: const Text("Join Swap"),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTeacherTile(int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -254,10 +338,10 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 25,
             backgroundImage: NetworkImage(
-              'https://i.pravatar.cc/150?u=student',
+              data['profilePic'] ?? 'https://i.pravatar.cc/150',
             ),
           ),
           const SizedBox(width: 15),
@@ -266,23 +350,34 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Sarah Connor",
+                  data['name'] ?? 'User',
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),
                 ),
-                const Text(
-                  "Expert in UI Design",
-                  style: TextStyle(color: secondaryText, fontSize: 12),
+                Text(
+                  data['bio'] ?? 'Student',
+                  style: const TextStyle(color: secondaryText, fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
           const Icon(Icons.star_rounded, color: Colors.orange, size: 20),
-          const Text(" 4.9", style: TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            " ${data['rating'] ?? '0.0'}",
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Text(message, style: const TextStyle(color: secondaryText)),
     );
   }
 }
