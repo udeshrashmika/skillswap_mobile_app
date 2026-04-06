@@ -50,15 +50,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       .collection('users')
       .doc(targetUid)
       .update({'bio': newBio});
+
   Future<void> _saveSkills(List<String> newSkills) async => await _firestore
       .collection('users')
       .doc(targetUid)
       .update({'skills': newSkills});
+
   Future<void> _saveAvatar(String url) async {
     await _firestore.collection('users').doc(targetUid).update({
       'profileImageUrl': url,
     });
-    Navigator.pop(context);
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -74,16 +76,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         }
-        if (!snapshot.hasData || !snapshot.data!.exists)
+        if (!snapshot.hasData || !snapshot.data!.exists) {
           return const Scaffold(body: Center(child: Text("Profile Not Found")));
+        }
 
         var data = snapshot.data!.data() as Map<String, dynamic>;
-        String name = data['name'] ?? "User";
+
+        String name = data['fullName'] ?? "User";
+
         String bio = data['bio'] ?? "";
         List<String> skills = List<String>.from(data['skills'] ?? []);
         String profilePic = data['profileImageUrl'] ?? "";
         double rating = (data['rating'] ?? 0.0).toDouble();
         int reviewCount = data['reviewCount'] ?? 0;
+        String university = data['university'] ?? "SkillSwap Member";
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -131,7 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ? Image.network(profilePic, fit: BoxFit.cover)
                             : Center(
                                 child: Text(
-                                  name[0].toUpperCase(),
+                                  name.isNotEmpty ? name[0].toUpperCase() : "U",
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 50,
@@ -170,7 +176,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 Text(
-                  data['university'] ?? "SkillSwap Member",
+                  university,
                   style: GoogleFonts.poppins(
                     color: secondaryText,
                     fontSize: 15,
@@ -373,6 +379,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Logout"),
         content: const Text("Are you sure you want to exit?"),
@@ -385,11 +392,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () async {
               await _auth.signOut();
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (c) => const LoginScreen()),
-                (r) => false,
-              );
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (c) => const LoginScreen()),
+                  (r) => false,
+                );
+              }
             },
             child: const Text("Logout", style: TextStyle(color: Colors.white)),
           ),
@@ -401,6 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showAvatarSelectionSheet() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
@@ -430,12 +440,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (c) => Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(c).viewInsets.bottom,
+          bottom: MediaQuery.of(c).viewInsets.bottom + 24,
           left: 24,
           right: 24,
           top: 24,
@@ -443,20 +454,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 40,
+              height: 5,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
             Text(
               "Edit Bio",
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
+                color: textColor,
               ),
             ),
             const SizedBox(height: 15),
             TextField(
               controller: controller,
               maxLines: 4,
+              style: const TextStyle(color: Colors.black87),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: softBlueBg,
+                hintText: "Write something about yourself...",
+                hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
                   borderSide: BorderSide.none,
@@ -478,10 +502,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
               child: const Text(
                 "Save Changes",
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -493,13 +520,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (c) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(c).viewInsets.bottom,
+            bottom: MediaQuery.of(c).viewInsets.bottom + 24,
             left: 24,
             right: 24,
             top: 24,
@@ -507,11 +535,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                width: 40,
+                height: 5,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
               Text(
                 "Manage Skills",
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
+                  color: textColor,
                 ),
               ),
               const SizedBox(height: 15),
@@ -520,14 +558,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: TextField(
                       controller: controller,
-                      decoration: const InputDecoration(
+                      style: const TextStyle(color: Colors.black87),
+                      decoration: InputDecoration(
                         hintText: "Add skill (e.g. Figma)",
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        filled: true,
+                        fillColor: softBlueBg,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle, color: gradientEndTeal),
-                    onPressed: () {
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () {
                       if (controller.text.isNotEmpty) {
                         setModalState(
                           () => currentSkills.add(controller.text.trim()),
@@ -536,25 +586,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         controller.clear();
                       }
                     },
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [gradientStartBlue, gradientEndTeal],
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: const Icon(Icons.add, color: Colors.white),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                children: currentSkills
-                    .map(
-                      (s) => Chip(
-                        label: Text(s),
-                        onDeleted: () {
-                          setModalState(() => currentSkills.remove(s));
-                          _saveSkills(currentSkills);
-                        },
-                      ),
-                    )
-                    .toList(),
+              const SizedBox(height: 15),
+              SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: currentSkills
+                      .map(
+                        (s) => Chip(
+                          label: Text(
+                            s,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          backgroundColor: primaryDarkPurple,
+                          deleteIcon: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          onDeleted: () {
+                            setModalState(() => currentSkills.remove(s));
+                            _saveSkills(currentSkills);
+                          },
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          side: BorderSide.none,
+                        ),
+                      )
+                      .toList(),
+                ),
               ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
