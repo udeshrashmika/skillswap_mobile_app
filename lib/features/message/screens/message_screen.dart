@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import '../../chat/screens/chat.dart';
 
 class MessageScreen extends StatefulWidget {
@@ -16,6 +19,22 @@ class _MessageScreenState extends State<MessageScreen> {
   static const Color textColor = Color(0xFF1E293B);
   static const Color secondaryText = Color(0xFF64748B);
 
+  late String currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    currentUserId = FirebaseAuth.instance.currentUser!.uid;
+  }
+
+  String getChatRoomId(String a, String b) {
+    if (a.compareTo(b) > 0) {
+      return "${a}_$b";
+    } else {
+      return "${b}_$a";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,7 +49,6 @@ class _MessageScreenState extends State<MessageScreen> {
             color: textColor,
             fontWeight: FontWeight.bold,
             fontSize: 22,
-            letterSpacing: 0.5,
           ),
         ),
         actions: [
@@ -48,7 +66,10 @@ class _MessageScreenState extends State<MessageScreen> {
                 ],
               ),
               child: IconButton(
-                onPressed: () {},
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
+                  if (mounted) Navigator.pop(context);
+                },
                 icon: const Icon(
                   Icons.logout_rounded,
                   color: textColor,
@@ -66,7 +87,7 @@ class _MessageScreenState extends State<MessageScreen> {
               left: 20.0,
               right: 20.0,
               top: 10.0,
-              bottom: 20.0,
+              bottom: 10.0,
             ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -88,144 +109,210 @@ class _MessageScreenState extends State<MessageScreen> {
               ),
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: chatList.length,
-              itemBuilder: (context, index) {
-                final chat = chatList[index];
 
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatScreen(
-                          name: chat['name'],
-                          image: chat['image'],
-                        ),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 15),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFF1F5F9)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: lavenderAccent),
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Text(
+                      "No friends found.",
+                      style: GoogleFonts.poppins(color: secondaryText),
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      leading: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: chat['unread'] > 0
-                                ? lavenderAccent
-                                : Colors.transparent,
-                            width: 2,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(25),
-                          child: Image.network(
-                            chat['image'],
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const SizedBox(
-                                width: 50,
-                                height: 50,
-                                child: Padding(
-                                  padding: EdgeInsets.all(12.0),
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: lavenderAccent,
-                                  ),
+                  );
+                }
+
+                var users = snapshot.data!.docs
+                    .where((doc) => doc.id != currentUserId)
+                    .toList();
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    var userData = users[index].data() as Map<String, dynamic>;
+                    String peerId = users[index].id;
+                    String name = userData['fullName'] ?? 'Unknown User';
+                    String image = userData['profileImageUrl'] ?? '';
+                    String chatRoomId = getChatRoomId(currentUserId, peerId);
+
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('chats')
+                          .doc(chatRoomId)
+                          .collection('messages')
+                          .orderBy('time', descending: true)
+                          .snapshots(),
+                      builder: (context, chatSnapshot) {
+                        String lastMessage = "Tap to chat";
+                        String lastTime = "";
+                        int unreadCount = 0;
+
+                        if (chatSnapshot.hasData &&
+                            chatSnapshot.data!.docs.isNotEmpty) {
+                          var docs = chatSnapshot.data!.docs;
+                          var lastDoc =
+                              docs.first.data() as Map<String, dynamic>;
+
+                          lastMessage = lastDoc['text'] ?? "Photo/Attachment";
+                          if (lastDoc['time'] != null) {
+                            lastTime = DateFormat(
+                              'hh:mm a',
+                            ).format((lastDoc['time'] as Timestamp).toDate());
+                          }
+
+                          for (var doc in docs) {
+                            var data = doc.data() as Map<String, dynamic>;
+                            if (data['senderId'] == peerId &&
+                                data['isRead'] == false) {
+                              unreadCount++;
+                            }
+                          }
+                        }
+
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatScreen(
+                                  peerId: peerId,
+                                  name: name,
+                                  image: image,
+                                  currentUserId: currentUserId,
                                 ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 50,
-                                height: 50,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 15),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
                                 color: const Color(0xFFF1F5F9),
-                                child: const Icon(
-                                  Icons.person,
-                                  color: secondaryText,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        chat['name'],
-                        style: GoogleFonts.poppins(
-                          color: textColor,
-                          fontWeight: chat['unread'] > 0
-                              ? FontWeight.bold
-                              : FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          chat['message'],
-                          style: GoogleFonts.poppins(
-                            color: chat['unread'] > 0
-                                ? textColor.withOpacity(0.8)
-                                : secondaryText,
-                            fontSize: 12,
-                            fontWeight: chat['unread'] > 0
-                                ? FontWeight.w500
-                                : FontWeight.normal,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      trailing: chat['unread'] > 0
-                          ? Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [lavenderAccent, tealAccent],
-                                ),
                               ),
-                              child: Text(
-                                chat['unread'].toString(),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.02),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(25),
+                                child: image.isNotEmpty
+                                    ? Image.network(
+                                        image,
+                                        width: 50,
+                                        height: 50,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (c, e, s) => Container(
+                                          width: 50,
+                                          height: 50,
+                                          color: const Color(0xFFF1F5F9),
+                                          child: const Icon(
+                                            Icons.person,
+                                            color: secondaryText,
+                                          ),
+                                        ),
+                                      )
+                                    : Container(
+                                        width: 50,
+                                        height: 50,
+                                        color: const Color(0xFFF1F5F9),
+                                        child: const Icon(
+                                          Icons.person,
+                                          color: secondaryText,
+                                        ),
+                                      ),
+                              ),
+                              title: Text(
+                                name,
                                 style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                  fontWeight: unreadCount > 0
+                                      ? FontWeight.bold
+                                      : FontWeight.w600,
+                                  fontSize: 15,
                                 ),
                               ),
-                            )
-                          : Text(
-                              "12:30 PM",
-                              style: GoogleFonts.poppins(
-                                color: secondaryText.withOpacity(0.5),
-                                fontSize: 11,
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text(
+                                  lastMessage,
+                                  style: GoogleFonts.poppins(
+                                    color: unreadCount > 0
+                                        ? textColor.withOpacity(0.8)
+                                        : secondaryText,
+                                    fontSize: 13,
+                                    fontWeight: unreadCount > 0
+                                        ? FontWeight.w500
+                                        : FontWeight.normal,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+
+                              trailing: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  if (lastTime.isNotEmpty)
+                                    Text(
+                                      lastTime,
+                                      style: GoogleFonts.poppins(
+                                        color: unreadCount > 0
+                                            ? tealAccent
+                                            : secondaryText.withOpacity(0.8),
+                                        fontSize: 11,
+                                        fontWeight: unreadCount > 0
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 5),
+                                  if (unreadCount > 0)
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(
+                                        color: tealAccent,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        unreadCount.toString(),
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                    ),
-                  ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 );
               },
             ),
@@ -235,48 +322,3 @@ class _MessageScreenState extends State<MessageScreen> {
     );
   }
 }
-
-final List<Map<String, dynamic>> chatList = [
-  {
-    'name': 'Marcus Johnson',
-    'message': 'That UI is smooth. Is that Flutter?',
-    'unread': 1,
-    'image': 'https://randomuser.me/api/portraits/men/32.jpg',
-  },
-  {
-    'name': 'Sarah Connor',
-    'message': 'Can you help me with the React bug?',
-    'unread': 0,
-    'image': 'https://randomuser.me/api/portraits/women/44.jpg',
-  },
-  {
-    'name': 'David Chen',
-    'message': 'Thanks for the TypeScript tutorial!',
-    'unread': 0,
-    'image': 'https://randomuser.me/api/portraits/men/46.jpg',
-  },
-  {
-    'name': 'Emma Watson',
-    'message': 'Are we still meeting at 5?',
-    'unread': 3,
-    'image': 'https://randomuser.me/api/portraits/women/32.jpg',
-  },
-  {
-    'name': 'Michael Bay',
-    'message': 'Thanks man! 🙏 Yeah, it\'s Flutter',
-    'unread': 0,
-    'image': 'https://randomuser.me/api/portraits/men/11.jpg',
-  },
-  {
-    'name': 'Alice Smith',
-    'message': 'I will send you the Figma design soon.',
-    'unread': 0,
-    'image': 'https://randomuser.me/api/portraits/women/12.jpg',
-  },
-  {
-    'name': 'John Wick',
-    'message': 'Yeah, the animations are looking great!',
-    'unread': 2,
-    'image': 'https://randomuser.me/api/portraits/men/9.jpg',
-  },
-];

@@ -26,12 +26,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: bg,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: Text(
           "Find Skills",
           style: GoogleFonts.poppins(
@@ -41,9 +38,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ),
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 15,
+              bottom: 20,
+            ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
@@ -203,7 +206,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
               label,
               style: GoogleFonts.poppins(
                 fontSize: 11,
-
                 color: isSelected ? lavenderAccent : secondaryText,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
               ),
@@ -217,6 +219,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget _buildHorizontalCard(BuildContext context, DocumentSnapshot skillDoc) {
     final skillData = skillDoc.data() as Map<String, dynamic>;
     final skillId = skillDoc.id;
+    final userId = skillData['userId'];
 
     return GestureDetector(
       onTap: () {
@@ -243,6 +246,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ],
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(15),
@@ -257,6 +261,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     skillData['title'] ?? 'No Title',
@@ -268,53 +273,113 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    skillData['category'] ?? 'General',
-                    style: GoogleFonts.poppins(
-                      color: secondaryText,
-                      fontSize: 12,
+                  const SizedBox(height: 6),
+
+                  if (userId != null)
+                    FutureBuilder<DocumentSnapshot>(
+                      future: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(userId)
+                          .get(),
+                      builder: (context, userSnapshot) {
+                        if (userSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const SizedBox(height: 20);
+                        }
+                        if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                          final userData =
+                              userSnapshot.data!.data() as Map<String, dynamic>;
+                          final publisherName = userData['fullName'] ?? 'User';
+
+                          return Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 10,
+                                backgroundColor: lavenderAccent.withOpacity(
+                                  0.15,
+                                ),
+                                child: const Icon(
+                                  Icons.person_rounded,
+                                  size: 13,
+                                  color: lavenderAccent,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  publisherName,
+                                  style: GoogleFonts.poppins(
+                                    color: secondaryText,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+
+                  const SizedBox(height: 6),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      skillData['category'] ?? 'General',
+                      style: GoogleFonts.poppins(
+                        color: secondaryText,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
+
                   const SizedBox(height: 8),
+
                   Row(
-                    children: [
-                      const Icon(
-                        Icons.star_rounded,
-                        color: Colors.orange,
-                        size: 16,
-                      ),
-                      const Text(
+                    children: const [
+                      Icon(Icons.star_rounded, color: Colors.orange, size: 16),
+                      Text(
                         " 4.8",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
                       ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [lavenderAccent, tealAccent],
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          skillData['level'] ?? "Beginner",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ],
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [lavenderAccent, tealAccent],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                skillData['level'] ?? "Beginner",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
