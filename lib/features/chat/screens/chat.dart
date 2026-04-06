@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
+  final String peerId;
   final String name;
   final String image;
+  final String currentUserId;
 
-  const ChatScreen({super.key, required this.name, required this.image});
+  const ChatScreen({
+    super.key,
+    required this.peerId,
+    required this.name,
+    required this.image,
+    required this.currentUserId,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  // Colors from your theme
   static const Color bg = Color(0xFFFBFBFE);
   static const Color lavenderAccent = Color(0xFF818CF8);
   static const Color tealAccent = Color(0xFF2DD4BF);
@@ -20,32 +29,40 @@ class _ChatScreenState extends State<ChatScreen> {
   static const Color secondaryText = Color(0xFF64748B);
 
   final TextEditingController _messageController = TextEditingController();
+  late String chatRoomId;
 
-  final List<Map<String, dynamic>> messages = [
-    {
-      "text": "Hey! Did you check the new Flutter update?",
-      "isMe": false,
-      "time": "08:45 AM",
-    },
-    {"text": "git pull", "isMe": true, "time": "08:50 AM"},
-    {"text": "git reset --hard HEAD 😂", "isMe": true, "time": "08:50 AM"},
-    {
-      "text": "Haha exactly! That UI is smooth. Is that Flutter?",
-      "isMe": false,
-      "time": "09:31 AM",
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    chatRoomId = getChatRoomId(widget.currentUserId, widget.peerId);
+  }
 
-  void sendMessage() {
+  String getChatRoomId(String a, String b) {
+    if (a.compareTo(b) > 0) {
+      return "${a}_$b";
+    } else {
+      return "${b}_$a";
+    }
+  }
+
+  void sendMessage() async {
     if (_messageController.text.trim().isNotEmpty) {
-      setState(() {
-        messages.add({
-          "text": _messageController.text.trim(),
-          "isMe": true,
-          "time": "Now",
-        });
-        _messageController.clear();
-      });
+      String messageText = _messageController.text.trim();
+      _messageController.clear();
+
+      Map<String, dynamic> messageMap = {
+        "text": messageText,
+        "senderId": widget.currentUserId,
+        "receiverId": widget.peerId,
+        "time": FieldValue.serverTimestamp(),
+        "isRead": false,
+      };
+
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(chatRoomId)
+          .collection('messages')
+          .add(messageMap);
     }
   }
 
@@ -68,8 +85,14 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Row(
           children: [
             CircleAvatar(
-              backgroundImage: NetworkImage(widget.image),
+              backgroundImage: widget.image.isNotEmpty
+                  ? NetworkImage(widget.image)
+                  : null,
+              backgroundColor: const Color(0xFFF1F5F9),
               radius: 20,
+              child: widget.image.isEmpty
+                  ? const Icon(Icons.person, color: secondaryText)
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -98,86 +121,132 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.videocam_rounded, color: lavenderAccent),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.call, color: lavenderAccent),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: Column(
         children: [
-          // Chat Messages Area
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final msg = messages[index];
-                final isMe = msg['isMe'];
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('chats')
+                  .doc(chatRoomId)
+                  .collection('messages')
+                  .orderBy('time', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: lavenderAccent),
+                  );
+                }
 
-                return Align(
-                  alignment: isMe
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Text(
+                      "Say hi to ${widget.name}!",
+                      style: GoogleFonts.poppins(color: secondaryText),
                     ),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isMe ? tealAccent : Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(20),
-                        topRight: const Radius.circular(20),
-                        bottomLeft: Radius.circular(isMe ? 20 : 5),
-                        bottomRight: Radius.circular(isMe ? 5 : 20),
+                  );
+                }
+
+                return ListView.builder(
+                  reverse: true,
+                  padding: const EdgeInsets.all(20),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    var msg =
+                        snapshot.data!.docs[index].data()
+                            as Map<String, dynamic>;
+                    bool isMe = msg['senderId'] == widget.currentUserId;
+
+                    if (!isMe && msg['isRead'] == false) {
+                      Future.microtask(() {
+                        snapshot.data!.docs[index].reference.update({
+                          'isRead': true,
+                        });
+                      });
+                    }
+
+                    String timeString = "";
+                    if (msg['time'] != null) {
+                      Timestamp timestamp = msg['time'];
+                      timeString = DateFormat(
+                        'hh:mm a',
+                      ).format(timestamp.toDate());
+                    }
+
+                    return Align(
+                      alignment: isMe
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isMe ? tealAccent : Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft: Radius.circular(isMe ? 20 : 5),
+                            bottomRight: Radius.circular(isMe ? 5 : 20),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              msg['text'] ?? "",
+                              style: GoogleFonts.poppins(
+                                color: isMe ? Colors.white : textColor,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  timeString,
+                                  style: GoogleFonts.poppins(
+                                    color: isMe
+                                        ? Colors.white70
+                                        : secondaryText.withOpacity(0.6),
+                                    fontSize: 10,
+                                  ),
+                                ),
+                                if (isMe) ...[
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.done_all,
+                                    size: 14,
+                                    color: msg['isRead'] == true
+                                        ? Colors.blueAccent
+                                        : Colors.white70,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          msg['text'],
-                          style: GoogleFonts.poppins(
-                            color: isMe ? Colors.white : textColor,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          msg['time'],
-                          style: GoogleFonts.poppins(
-                            color: isMe
-                                ? Colors.white70
-                                : secondaryText.withOpacity(0.6),
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                    );
+                  },
                 );
               },
             ),
           ),
-
-          // Bottom Input Field (Like WhatsApp)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -193,13 +262,6 @@ class _ChatScreenState extends State<ChatScreen> {
             child: SafeArea(
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.add_circle_outline,
-                      color: secondaryText,
-                    ),
-                    onPressed: () {},
-                  ),
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -220,14 +282,6 @@ class _ChatScreenState extends State<ChatScreen> {
                             fontSize: 14,
                           ),
                           border: InputBorder.none,
-                          suffixIcon: const Icon(
-                            Icons.sentiment_satisfied_alt,
-                            color: secondaryText,
-                            size: 20,
-                          ),
-                          suffixIconConstraints: const BoxConstraints(
-                            minWidth: 30,
-                          ),
                         ),
                       ),
                     ),
