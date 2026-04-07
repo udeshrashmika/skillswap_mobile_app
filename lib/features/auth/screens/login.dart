@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart'; 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'create_account.dart';
 import '../../main_wrapper/screens/main_wrapper.dart';
 
@@ -13,9 +13,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
-  bool _isLoading = false; 
+  bool _isLoading = false;
 
- 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -29,16 +28,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  
   Future<void> _loginUser() async {
-    
-    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter both email and password")),
       );
@@ -46,17 +43,15 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() {
-      _isLoading = true; 
+      _isLoading = true;
     });
 
     try {
-      
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -64,7 +59,6 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      
       String errorMessage = "An error occurred";
       if (e.code == 'user-not-found') {
         errorMessage = "No user found for that email.";
@@ -78,13 +72,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false; 
+          _isLoading = false;
         });
       }
     }
@@ -157,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     _buildTextField(
                       hint: "your.email@gmail.com",
                       icon: Icons.email_outlined,
-                      controller: _emailController, 
+                      controller: _emailController,
                     ),
                     const SizedBox(height: 25),
                     _buildLabel("Password"),
@@ -166,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       hint: "Enter your password",
                       icon: Icons.lock_outline,
                       isPassword: true,
-                      controller: _passwordController, 
+                      controller: _passwordController,
                     ),
                     Align(
                       alignment: Alignment.centerRight,
@@ -183,9 +180,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    
                     GestureDetector(
-                      onTap: _isLoading ? null : _loginUser, 
+                      onTap: _isLoading ? null : _loginUser,
                       child: Container(
                         width: double.infinity,
                         height: 55,
@@ -201,7 +197,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         child: Center(
-                          
                           child: _isLoading
                               ? const SizedBox(
                                   height: 25,
@@ -283,7 +278,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  
   Widget _buildTextField({
     required String hint,
     required IconData icon,
@@ -291,7 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required TextEditingController controller,
   }) {
     return TextField(
-      controller: controller, 
+      controller: controller,
       obscureText: isPassword && !_isPasswordVisible,
       style: const TextStyle(color: Color(0xFF1F1F39)),
       decoration: InputDecoration(
