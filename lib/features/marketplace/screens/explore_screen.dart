@@ -33,7 +33,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
           "Find Skills",
           style: GoogleFonts.poppins(
             color: textColor,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w800,
+            fontSize: 24,
           ),
         ),
       ),
@@ -50,8 +51,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
               child: TextField(
                 onChanged: (value) {
@@ -59,14 +66,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     searchQuery = value.toLowerCase();
                   });
                 },
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: "What do you want to learn?",
+                  hintStyle: GoogleFonts.poppins(
+                    color: secondaryText.withOpacity(0.7),
+                    fontSize: 14,
+                  ),
                   border: InputBorder.none,
-                  icon: Icon(Icons.search, color: lavenderAccent),
+                  icon: const Icon(Icons.search, color: lavenderAccent),
                 ),
+                style: GoogleFonts.poppins(color: textColor, fontSize: 14),
               ),
             ),
           ),
+
           SizedBox(
             height: 100,
             child: ListView(
@@ -81,10 +94,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ],
             ),
           ),
+
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Divider(color: Color(0xFFE2E8F0)),
           ),
+
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -97,7 +112,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 }
 
                 if (snapshot.hasError) {
-                  return const Center(child: Text("Something went wrong!"));
+                  return Center(
+                    child: Text(
+                      "Something went wrong!",
+                      style: GoogleFonts.poppins(color: secondaryText),
+                    ),
+                  );
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -201,9 +221,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
             Text(
               label,
               style: GoogleFonts.poppins(
-                fontSize: 11,
+                fontSize: 12,
                 color: isSelected ? lavenderAccent : secondaryText,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
           ],
@@ -232,13 +252,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFF1F5F9)),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
+            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
           ],
         ),
         child: Row(
@@ -270,6 +285,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
+
                   if (userId != null)
                     FutureBuilder<DocumentSnapshot>(
                       future: FirebaseFirestore.instance
@@ -284,6 +300,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
                         String publisherName = 'User';
                         String userRating = 'New';
+                        String? profilePicUrl;
 
                         if (userSnapshot.hasData && userSnapshot.data!.exists) {
                           final userData =
@@ -293,6 +310,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               userData['name'] ??
                               'User';
                           userRating = userData['rating']?.toString() ?? 'New';
+
+                          profilePicUrl = userData['profileImageUrl'];
                         }
 
                         return Column(
@@ -305,11 +324,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   backgroundColor: lavenderAccent.withOpacity(
                                     0.15,
                                   ),
-                                  child: const Icon(
-                                    Icons.person_rounded,
-                                    size: 13,
-                                    color: lavenderAccent,
-                                  ),
+
+                                  backgroundImage:
+                                      profilePicUrl != null &&
+                                          profilePicUrl.isNotEmpty
+                                      ? NetworkImage(profilePicUrl)
+                                      : null,
+
+                                  child:
+                                      profilePicUrl == null ||
+                                          profilePicUrl.isEmpty
+                                      ? const Icon(
+                                          Icons.person_rounded,
+                                          size: 13,
+                                          color: lavenderAccent,
+                                        )
+                                      : null,
                                 ),
                                 const SizedBox(width: 6),
                                 Expanded(
