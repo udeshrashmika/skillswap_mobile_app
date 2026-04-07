@@ -13,37 +13,58 @@ class RequestsScreen extends StatefulWidget {
 class _RequestsScreenState extends State<RequestsScreen> {
   static const Color lightBackground = Color(0xFFFAFAFA);
   static const Color primaryPurple = Color(0xFF6A5AE0);
+  static const Color cardColor = Colors.white;
   static const Color textColor = Color(0xFF1E1E2D);
   static const Color textMuted = Colors.grey;
 
-  late final String currentUserId;
+  Future<void> _updateRequestStatus(String docId, String status, Map<String, dynamic> requestData) async {
+    await FirebaseFirestore.instance.collection('requests').doc(docId).update({
+      'status': status,
+    });
 
-  @override
-  void initState() {
-    super.initState();
-    currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
-  }
+    if (status == 'completed') {
+      try {
+        final teacherDoc = await FirebaseFirestore.instance.collection('users').doc(requestData['receiverId']).get();
+        final learnerDoc = await FirebaseFirestore.instance.collection('users').doc(requestData['senderId']).get();
+        
+        String teacherName = 'Teacher';
+        String learnerName = 'Learner';
+        String university = 'University';
+        
+        if (teacherDoc.exists) {
+          final data = teacherDoc.data() as Map<String, dynamic>;
+          teacherName = data['fullName'] ?? data['name'] ?? 'Teacher';
+          university = data['university'] ?? 'University';
+        }
+        
+        if (learnerDoc.exists) {
+          final data = learnerDoc.data() as Map<String, dynamic>;
+          learnerName = data['fullName'] ?? data['name'] ?? 'Learner';
+        }
 
-  Future<void> _updateStatus(String docId, String newStatus) async {
-    try {
-      await FirebaseFirestore.instance.collection('requests').doc(docId).update(
-        {'status': newStatus},
-      );
+        String tInitials = teacherName.isNotEmpty ? teacherName.substring(0, 1).toUpperCase() : 'T';
+        String lInitials = learnerName.isNotEmpty ? learnerName.substring(0, 1).toUpperCase() : 'L';
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Request $newStatus"),
-            backgroundColor: primaryPurple,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
+        await FirebaseFirestore.instance.collection('swap_history').add({
+          'skillId': requestData['skillId'],
+          'teacherId': requestData['receiverId'],
+          'learnerId': requestData['senderId'],
+          'participants': [requestData['senderId'], requestData['receiverId']],
+          'teacherName': teacherName,
+          'learnerName': learnerName,
+          'teacherInitials': tInitials,
+          'learnerInitials': lInitials,
+          'university': university,
+          'taughtYou': requestData['skillTitle'],
+          'youTaught': 'Pending...', 
+          'date': "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}",
+          'duration': '1h', 
+          'rated': false,
+          'savedRating': 0,
+        });
+      } catch (e) {
+        debugPrint("Error creating history: $e");
       }
-    } catch (e) {
-      debugPrint("Update Error: $e");
     }
   }
 
@@ -57,6 +78,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
           backgroundColor: lightBackground,
           elevation: 0,
           automaticallyImplyLeading: false,
+          centerTitle: false,
           title: Padding(
             padding: const EdgeInsets.only(top: 10.0, left: 8.0),
             child: Text(
@@ -65,6 +87,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 color: textColor,
                 fontWeight: FontWeight.bold,
                 fontSize: 28,
+                letterSpacing: 0.5,
               ),
             ),
           ),
@@ -72,6 +95,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 10),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.0),
               child: Text(
@@ -101,8 +125,8 @@ class _RequestsScreenState extends State<RequestsScreen> {
             Expanded(
               child: TabBarView(
                 children: [
-                  _buildRequestList('receiverId'),
-                  _buildRequestList('senderId'),
+                  _buildRequestsList(isReceived: true),
+                  _buildRequestsList(isReceived: false),
                 ],
               ),
             ),
@@ -112,69 +136,109 @@ class _RequestsScreenState extends State<RequestsScreen> {
     );
   }
 
-  Widget _buildRequestList(String filterField) {
+  Widget _buildRequestsList({required bool isReceived}) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUserId == null) {
+      return const Center(child: Text("Please login to view requests"));
+    }
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('requests')
-          .where(filterField, isEqualTo: currentUserId)
-          .orderBy('timestamp', descending: true)
-          .snapshots(includeMetadataChanges: true),
+          .where(isReceived ? 'receiverId' : 'senderId', isEqualTo: currentUserId)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text("Setting up database... please wait."));
+          return Center(child: Text("Error loading requests: ${snapshot.error}"));
         }
-
-        if (snapshot.connectionState == ConnectionState.waiting &&
-            !snapshot.hasData) {
-          return const Center(
-            child: CircularProgressIndicator(color: primaryPurple),
-          );
+        
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
         }
-
+        
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(
             child: Text(
-              "No requests found",
-              style: GoogleFonts.poppins(color: textMuted),
+              isReceived ? "No received requests yet" : "No sent requests yet",
+              style: const TextStyle(color: Colors.grey, fontSize: 16),
             ),
           );
         }
 
-        final docs = snapshot.data!.docs;
+        final requests = snapshot.data!.docs.toList();
+        
+        requests.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          Timestamp? t1 = aData['timestamp'] as Timestamp?;
+          Timestamp? t2 = bData['timestamp'] as Timestamp?;
+          if (t1 == null || t2 == null) return 0;
+          return t2.compareTo(t1);
+        });
 
         return ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          itemCount: docs.length,
+          itemCount: requests.length,
           itemBuilder: (context, index) {
-            var doc = docs[index];
-            var data = doc.data() as Map<String, dynamic>;
-            bool isReceivedTab = filterField == 'receiverId';
+            final doc = requests[index];
+            final data = doc.data() as Map<String, dynamic>;
+            final otherUserId = isReceived ? data['senderId'] : data['receiverId'];
 
-            return _buildRequestCard(doc.id, data, isReceivedTab);
+            return FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance.collection('users').doc(otherUserId).get(),
+              builder: (context, userSnapshot) {
+                if (userSnapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()));
+                }
+
+                String name = 'Unknown User';
+                String avatarUrl = 'https://randomuser.me/api/portraits/men/32.jpg';
+
+                if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                  final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+                  name = userData['fullName'] ?? userData['name'] ?? 'Unknown User';
+                  avatarUrl = userData['profileImageUrl'] ?? avatarUrl;
+                }
+
+                return _buildRequestCard(
+                  docId: doc.id,
+                  requestData: data,
+                  name: name,
+                  avatarUrl: avatarUrl,
+                  isReceived: isReceived,
+                );
+              },
+            );
           },
         );
       },
     );
   }
 
-  Widget _buildRequestCard(
-    String docId,
-    Map<String, dynamic> data,
-    bool isReceived,
-  ) {
-    String status = data['status'] ?? 'pending';
+  Widget _buildRequestCard({
+    required String docId,
+    required Map<String, dynamic> requestData,
+    required String name,
+    required String avatarUrl,
+    required bool isReceived,
+  }) {
+    String status = requestData['status'] ?? 'pending';
+    String skillTitle = requestData['skillTitle'] ?? 'Unknown Skill';
+    String message = requestData['message'] ?? '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
             blurRadius: 10,
+            spreadRadius: 1,
             offset: const Offset(0, 4),
           ),
         ],
@@ -186,13 +250,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundImage: data['senderPhoto'] != null
-                    ? NetworkImage(data['senderPhoto'])
-                    : null,
-                backgroundColor: primaryPurple.withOpacity(0.1),
-                child: data['senderPhoto'] == null
-                    ? const Icon(Icons.person, color: primaryPurple)
-                    : null,
+                backgroundImage: NetworkImage(avatarUrl),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -200,111 +258,126 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isReceived
-                          ? (data['senderName'] ?? 'New Student')
-                          : "Request Sent",
+                      name,
                       style: GoogleFonts.poppins(
                         color: textColor,
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                       ),
                     ),
-                    _statusBadge(status),
+                    Row(
+                      children: [
+                        Text(
+                          isReceived ? 'Wants to learn: ' : 'You requested: ',
+                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                        Text(
+                          skillTitle,
+                          style: const TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          RichText(
-            text: TextSpan(
-              style: GoogleFonts.poppins(color: textColor, fontSize: 13),
-              children: [
-                const TextSpan(
-                  text: 'Skill: ',
-                  style: TextStyle(color: Colors.grey),
-                ),
-                TextSpan(
-                  text: data['skillTitle'] ?? 'N/A',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: primaryPurple,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
           Text(
-            'Message: "${data['message'] ?? 'No message'}"',
+            'Message: "$message"',
             style: const TextStyle(
               color: Colors.grey,
               fontSize: 12,
               fontStyle: FontStyle.italic,
             ),
           ),
-
-          if (isReceived && status == 'pending') ...[
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                ElevatedButton(
-                  onPressed: () => _updateStatus(docId, 'accepted'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryPurple,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+          const SizedBox(height: 16),
+          if (status == 'pending') ...[
+            if (isReceived)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  SizedBox(
+                    height: 36,
+                    child: ElevatedButton(
+                      onPressed: () => _updateRequestStatus(docId, 'accepted', requestData),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryPurple,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                      child: const Text('Accept', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
                     ),
-                    elevation: 0,
                   ),
-                  child: const Text(
-                    'Accept',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    height: 36,
+                    child: OutlinedButton(
+                      onPressed: () => _updateRequestStatus(docId, 'rejected', requestData),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                      child: const Text('Reject', style: TextStyle(color: textColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              )
+            else
+              _buildBadge('PENDING', Colors.orange),
+          ] 
+          else if (status == 'accepted') ...[
+            if (isReceived)
+              Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(
+                  height: 36,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _updateRequestStatus(docId, 'completed', requestData),
+                    icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                    label: const Text('Mark as Completed', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2DD4BF),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                OutlinedButton(
-                  onPressed: () => _updateStatus(docId, 'rejected'),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey.shade300),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Text(
-                    'Reject',
-                    style: TextStyle(color: textColor),
-                  ),
-                ),
-              ],
-            ),
-          ],
+              )
+            else
+              _buildBadge('ACCEPTED', Colors.green),
+          ] 
+          else if (status == 'completed') ...[
+            _buildBadge('SESSION COMPLETED', Colors.green),
+          ] 
+          else if (status == 'rejected') ...[
+            _buildBadge('REJECTED', Colors.red),
+          ]
         ],
       ),
     );
   }
 
-  Widget _statusBadge(String status) {
-    Color color = status == 'accepted'
-        ? Colors.green
-        : (status == 'rejected' ? Colors.red : Colors.orange);
-    return Container(
-      margin: const EdgeInsets.only(top: 2),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        status.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
+  Widget _buildBadge(String text, MaterialColor color) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.shade100,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: color.shade700,
+            fontWeight: FontWeight.bold,
+            fontSize: 11,
+          ),
         ),
       ),
     );
