@@ -66,6 +66,46 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void deleteMessage(String messageId) async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          "Delete Message",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          "Are you sure you want to delete this message?",
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              "Cancel",
+              style: GoogleFonts.poppins(color: secondaryText),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              await FirebaseFirestore.instance
+                  .collection('chats')
+                  .doc(chatRoomId)
+                  .collection('messages')
+                  .doc(messageId)
+                  .delete();
+              if (mounted) Navigator.pop(context);
+            },
+            child: Text(
+              "Delete",
+              style: GoogleFonts.poppins(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -153,16 +193,14 @@ class _ChatScreenState extends State<ChatScreen> {
                   padding: const EdgeInsets.all(20),
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
-                    var msg =
-                        snapshot.data!.docs[index].data()
-                            as Map<String, dynamic>;
+                    var document = snapshot.data!.docs[index];
+                    var msg = document.data() as Map<String, dynamic>;
+                    String docId = document.id;
                     bool isMe = msg['senderId'] == widget.currentUserId;
 
                     if (!isMe && msg['isRead'] == false) {
                       Future.microtask(() {
-                        snapshot.data!.docs[index].reference.update({
-                          'isRead': true,
-                        });
+                        document.reference.update({'isRead': true});
                       });
                     }
 
@@ -174,71 +212,78 @@ class _ChatScreenState extends State<ChatScreen> {
                       ).format(timestamp.toDate());
                     }
 
-                    return Align(
-                      alignment: isMe
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.75,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isMe ? tealAccent : Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(20),
-                            topRight: const Radius.circular(20),
-                            bottomLeft: Radius.circular(isMe ? 20 : 5),
-                            bottomRight: Radius.circular(isMe ? 5 : 20),
+                    return GestureDetector(
+                      onLongPress: () {
+                        if (isMe) {
+                          deleteMessage(docId);
+                        }
+                      },
+                      child: Align(
+                        alignment: isMe
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width * 0.75,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isMe ? tealAccent : Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(20),
+                              topRight: const Radius.circular(20),
+                              bottomLeft: Radius.circular(isMe ? 20 : 5),
+                              bottomRight: Radius.circular(isMe ? 5 : 20),
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              msg['text'] ?? "",
-                              style: GoogleFonts.poppins(
-                                color: isMe ? Colors.white : textColor,
-                                fontSize: 14,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  timeString,
-                                  style: GoogleFonts.poppins(
-                                    color: isMe
-                                        ? Colors.white70
-                                        : secondaryText.withOpacity(0.6),
-                                    fontSize: 10,
-                                  ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                msg['text'] ?? "",
+                                style: GoogleFonts.poppins(
+                                  color: isMe ? Colors.white : textColor,
+                                  fontSize: 14,
                                 ),
-                                if (isMe) ...[
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    Icons.done_all,
-                                    size: 14,
-                                    color: msg['isRead'] == true
-                                        ? Colors.blueAccent
-                                        : Colors.white70,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    timeString,
+                                    style: GoogleFonts.poppins(
+                                      color: isMe
+                                          ? Colors.white70
+                                          : secondaryText.withOpacity(0.6),
+                                      fontSize: 10,
+                                    ),
                                   ),
+                                  if (isMe) ...[
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.done_all,
+                                      size: 14,
+                                      color: msg['isRead'] == true
+                                          ? Colors.blueAccent
+                                          : Colors.white70,
+                                    ),
+                                  ],
                                 ],
-                              ],
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
