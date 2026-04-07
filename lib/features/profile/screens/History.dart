@@ -19,67 +19,7 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final Map<String, int> _pendingRatings = {};
   final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
-
-  static const List<String> _labels = [
-    '',
-    'Poor',
-    'Fair',
-    'Good',
-    'Great',
-    'Excellent',
-  ];
-
-  Future<void> _submitRating(
-    String docId,
-    String teacherId,
-    String teacherName,
-  ) async {
-    final rating = _pendingRatings[docId] ?? 0;
-    if (rating == 0) return;
-
-    try {
-      await FirebaseFirestore.instance.collection('requests').doc(docId).update(
-        {'rated': true, 'savedRating': rating},
-      );
-
-      final teacherRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(teacherId);
-
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        DocumentSnapshot teacherSnap = await transaction.get(teacherRef);
-
-        if (teacherSnap.exists) {
-          Map<String, dynamic> data =
-              teacherSnap.data() as Map<String, dynamic>;
-
-          double currentRating = (data['rating'] ?? 0.0).toDouble();
-          int totalReviews = data['reviewCount'] ?? 0;
-
-          double newRating =
-              ((currentRating * totalReviews) + rating) / (totalReviews + 1);
-
-          transaction.update(teacherRef, {
-            'rating': double.parse(newRating.toStringAsFixed(1)),
-            'reviewCount': totalReviews + 1,
-          });
-        }
-      });
-
-      setState(() => _pendingRatings.remove(docId));
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Feedback sent to $teacherName!'),
-          backgroundColor: _darkPurple,
-        ),
-      );
-    } catch (e) {
-      debugPrint("Rating Error: $e");
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +62,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
             itemBuilder: (context, index) {
               var doc = snapshot.data!.docs[index];
               var data = doc.data() as Map<String, dynamic>;
-              return _buildHistoryCard(doc.id, data);
+
+              return HistoryCard(docId: doc.id, requestData: data);
             },
           );
         },
@@ -130,11 +71,128 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildHistoryCard(String docId, Map<String, dynamic> data) {
-    bool isRated = data['rated'] ?? false;
-    int savedRating = data['savedRating'] ?? 0;
-    int pending = _pendingRatings[docId] ?? 0;
-    String teacherName = data['receiverName'] ?? "Teacher";
+  Widget _buildEmptyState() => Center(
+    child: Text(
+      'No completed swaps to rate.',
+      style: GoogleFonts.poppins(color: _secondaryText),
+    ),
+  );
+}
+
+class HistoryCard extends StatefulWidget {
+  final String docId;
+  final Map<String, dynamic> requestData;
+
+  const HistoryCard({
+    super.key,
+    required this.docId,
+    required this.requestData,
+  });
+
+  @override
+  State<HistoryCard> createState() => _HistoryCardState();
+}
+
+class _HistoryCardState extends State<HistoryCard> {
+  int pendingRating = 0;
+  String teacherName = "Loading...";
+  String? profilePicUrl;
+
+  static const List<String> _labels = [
+    '',
+    'Poor',
+    'Fair',
+    'Good',
+    'Great',
+    'Excellent',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTeacherData();
+  }
+
+  Future<void> _fetchTeacherData() async {
+    String receiverId = widget.requestData['receiverId'] ?? '';
+    if (receiverId.isEmpty) {
+      setState(() => teacherName = "Unknown Teacher");
+      return;
+    }
+
+    try {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(receiverId)
+          .get();
+
+      if (userDoc.exists && mounted) {
+        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+        setState(() {
+          teacherName = userData['fullName'] ?? userData['name'] ?? 'Teacher';
+          profilePicUrl = userData['profileImageUrl'] ?? userData['profilePic'];
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching user: $e");
+      if (mounted) setState(() => teacherName = "Teacher");
+    }
+  }
+
+  Future<void> _submitRating() async {
+    if (pendingRating == 0) return;
+
+    String teacherId = widget.requestData['receiverId'] ?? '';
+    if (teacherId.isEmpty) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('requests')
+          .doc(widget.docId)
+          .update({'rated': true, 'savedRating': pendingRating});
+
+      final teacherRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(teacherId);
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot teacherSnap = await transaction.get(teacherRef);
+
+        if (teacherSnap.exists) {
+          Map<String, dynamic> data =
+              teacherSnap.data() as Map<String, dynamic>;
+
+          double currentRating = (data['rating'] ?? 0.0).toDouble();
+          int totalReviews = data['reviewCount'] ?? 0;
+
+          double newRating =
+              ((currentRating * totalReviews) + pendingRating) /
+              (totalReviews + 1);
+
+          transaction.update(teacherRef, {
+            'rating': double.parse(newRating.toStringAsFixed(1)),
+            'reviewCount': totalReviews + 1,
+          });
+        }
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Feedback sent to $teacherName!'),
+            backgroundColor: _darkPurple,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Rating Error: $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isRated = widget.requestData['rated'] ?? false;
+    int savedRating = widget.requestData['savedRating'] ?? 0;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -153,13 +211,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
             children: [
               CircleAvatar(
                 backgroundColor: _lavender.withOpacity(0.2),
-                child: Text(
-                  teacherName[0],
-                  style: const TextStyle(
-                    color: _darkPurple,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                backgroundImage:
+                    profilePicUrl != null && profilePicUrl!.isNotEmpty
+                    ? NetworkImage(profilePicUrl!)
+                    : null,
+                child: profilePicUrl == null || profilePicUrl!.isEmpty
+                    ? Text(
+                        teacherName.isNotEmpty
+                            ? teacherName[0].toUpperCase()
+                            : 'T',
+                        style: const TextStyle(
+                          color: _darkPurple,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -171,10 +237,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
+                        color: _textColor,
                       ),
                     ),
                     Text(
-                      data['skillTitle'] ?? "Skill Session",
+                      widget.requestData['skillTitle'] ?? "Skill Session",
                       style: const TextStyle(
                         color: _secondaryText,
                         fontSize: 12,
@@ -188,9 +255,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           const SizedBox(height: 15),
           const Divider(height: 24),
-          isRated
-              ? _ratedSection(savedRating)
-              : _ratingInput(docId, data['receiverId'], teacherName, pending),
+          isRated ? _ratedSection(savedRating) : _ratingInput(),
         ],
       ),
     );
@@ -234,17 +299,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _ratingInput(
-    String docId,
-    String teacherId,
-    String name,
-    int pending,
-  ) {
+  Widget _ratingInput() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "How was your session with $name?",
+          "How was your session with $teacherName?",
           style: const TextStyle(fontSize: 12, color: _secondaryText),
         ),
         const SizedBox(height: 8),
@@ -253,18 +313,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ...List.generate(
               5,
               (i) => GestureDetector(
-                onTap: () => setState(() => _pendingRatings[docId] = i + 1),
+                onTap: () => setState(() => pendingRating = i + 1),
                 child: Icon(
                   Icons.star_rounded,
                   size: 30,
-                  color: i < pending ? _starColor : const Color(0xFFE2E8F0),
+                  color: i < pendingRating
+                      ? _starColor
+                      : const Color(0xFFE2E8F0),
                 ),
               ),
             ),
             const SizedBox(width: 10),
-            if (pending > 0)
+            if (pendingRating > 0)
               Text(
-                _labels[pending],
+                _labels[pendingRating],
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -277,9 +339,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: pending > 0
-                ? () => _submitRating(docId, teacherId, name)
-                : null,
+            onPressed: pendingRating > 0 ? _submitRating : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: _darkPurple,
               shape: RoundedRectangleBorder(
@@ -298,11 +358,4 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ],
     );
   }
-
-  Widget _buildEmptyState() => Center(
-    child: Text(
-      'No completed swaps to rate.',
-      style: GoogleFonts.poppins(color: _secondaryText),
-    ),
-  );
 }
