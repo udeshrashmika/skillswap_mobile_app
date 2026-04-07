@@ -21,10 +21,19 @@ class _MessageScreenState extends State<MessageScreen> {
 
   late String currentUserId;
 
+  String searchQuery = "";
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     currentUserId = FirebaseAuth.instance.currentUser!.uid;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   String getChatRoomId(String a, String b) {
@@ -96,6 +105,12 @@ class _MessageScreenState extends State<MessageScreen> {
                 borderRadius: BorderRadius.circular(15),
               ),
               child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value.toLowerCase();
+                  });
+                },
                 style: GoogleFonts.poppins(color: textColor),
                 decoration: InputDecoration(
                   hintText: "Search messages...",
@@ -105,6 +120,22 @@ class _MessageScreenState extends State<MessageScreen> {
                   ),
                   border: InputBorder.none,
                   icon: const Icon(Icons.search, color: lavenderAccent),
+
+                  suffixIcon: searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(
+                            Icons.clear,
+                            color: secondaryText,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              searchQuery = "";
+                            });
+                          },
+                        )
+                      : null,
                 ),
               ),
             ),
@@ -131,9 +162,29 @@ class _MessageScreenState extends State<MessageScreen> {
                   );
                 }
 
-                var users = snapshot.data!.docs
-                    .where((doc) => doc.id != currentUserId)
-                    .toList();
+                var users = snapshot.data!.docs.where((doc) {
+                  if (doc.id == currentUserId) return false;
+
+                  var userData = doc.data() as Map<String, dynamic>;
+                  String name = (userData['fullName'] ?? 'Unknown User')
+                      .toString()
+                      .toLowerCase();
+
+                  if (searchQuery.isEmpty) {
+                    return true;
+                  } else {
+                    return name.contains(searchQuery);
+                  }
+                }).toList();
+
+                if (users.isEmpty) {
+                  return Center(
+                    child: Text(
+                      "No users match your search.",
+                      style: GoogleFonts.poppins(color: secondaryText),
+                    ),
+                  );
+                }
 
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -270,7 +321,6 @@ class _MessageScreenState extends State<MessageScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-
                               trailing: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.end,
