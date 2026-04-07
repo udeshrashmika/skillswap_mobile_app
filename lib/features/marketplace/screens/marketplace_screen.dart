@@ -44,26 +44,39 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Hi, ${FirebaseAuth.instance.currentUser?.displayName ?? 'Welcome'}!",
-                          style: GoogleFonts.poppins(
-                            color: lavenderAccent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          "Let's swap a skill",
-                          style: GoogleFonts.poppins(
-                            color: textColor,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 24,
-                          ),
-                        ),
-                      ],
+                    StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(FirebaseAuth.instance.currentUser?.uid)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        String displayName = "Welcome";
+                        if (snapshot.hasData && snapshot.data!.exists) {
+                          var d = snapshot.data!.data() as Map<String, dynamic>;
+                          displayName = d['fullName'] ?? d['name'] ?? "User";
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Hi, $displayName!",
+                              style: GoogleFonts.poppins(
+                                color: lavenderAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              "Let's swap a skill",
+                              style: GoogleFonts.poppins(
+                                color: textColor,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 24,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     GestureDetector(
                       onTap: () => Navigator.push(
@@ -190,7 +203,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                               .toString()
                               .toLowerCase();
                           String cat = (data['category'] ?? "").toString();
-
                           return title.contains(searchQuery) &&
                               (selectedCategory == "All" ||
                                   cat == selectedCategory);
@@ -345,8 +357,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   Widget _buildTeacherTile(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-    String name =
-        data['name'] ?? data['displayName'] ?? data['email'] ?? 'New Member';
+    String name = data['fullName'] ?? data['name'] ?? 'SkillSwap Member';
 
     String university = data['university'] ?? 'SkillSwap Student';
     String profileImg =
