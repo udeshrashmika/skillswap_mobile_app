@@ -63,6 +63,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) Navigator.pop(context);
   }
 
+  void _deleteMarketplaceSkill(String docId, String title) {
+    showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          "Remove Skill",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "Are you sure you want to stop sharing '$title' in the marketplace?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: const StadiumBorder(),
+            ),
+            onPressed: () async {
+              await _firestore.collection('skills').doc(docId).delete();
+              if (mounted) Navigator.pop(c);
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
@@ -81,9 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
 
         var data = snapshot.data!.data() as Map<String, dynamic>;
-
         String name = data['fullName'] ?? "User";
-
         String bio = data['bio'] ?? "";
         List<String> skills = List<String>.from(data['skills'] ?? []);
         String profilePic = data['profileImageUrl'] ?? "";
@@ -114,7 +145,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 20),
-
                 Stack(
                   alignment: Alignment.bottomRight,
                   children: [
@@ -165,7 +195,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                   ],
                 ),
-
                 const SizedBox(height: 15),
                 Text(
                   name,
@@ -182,9 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     fontSize: 15,
                   ),
                 ),
-
                 const SizedBox(height: 12),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -204,7 +231,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 30),
 
                 _buildSectionHeader(
@@ -240,7 +266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 30),
 
                 _buildSectionHeader(
-                  "Skills Offered",
+                  "Skills Summary",
                   isMe ? () => _showEditSkillsSheet(skills) : null,
                 ),
                 const SizedBox(height: 12),
@@ -249,29 +275,132 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Wrap(
                     spacing: 10,
                     runSpacing: 10,
-                    children: [
-                      if (skills.isEmpty)
-                        const Text("No skills added yet.")
-                      else
-                        ...skills.map((s) => _buildSkillChip(s)),
-                    ],
+                    children: skills.isEmpty
+                        ? [const Text("No skills added yet.")]
+                        : skills.map((s) => _buildSkillChip(s)).toList(),
                   ),
                 ),
 
+                const SizedBox(height: 30),
+
                 if (isMe) ...[
-                  const SizedBox(height: 40),
-                  
-                  // History Button
+                  _buildSectionHeader("My Marketplace Posts", null),
+                  const SizedBox(height: 12),
+                  StreamBuilder<QuerySnapshot>(
+                    stream: _firestore
+                        .collection('skills')
+                        .where('userId', isEqualTo: targetUid)
+                        .snapshots(),
+                    builder: (context, skillSnapshot) {
+                      if (!skillSnapshot.hasData ||
+                          skillSnapshot.data!.docs.isEmpty) {
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: softBlueBg,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            "You haven't shared any skills yet.",
+                            style: TextStyle(
+                              color: secondaryText,
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        );
+                      }
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: skillSnapshot.data!.docs.length,
+                        itemBuilder: (context, index) {
+                          var skillDoc = skillSnapshot.data!.docs[index];
+                          var skillData =
+                              skillDoc.data() as Map<String, dynamic>;
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.grey.withOpacity(0.1),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.02),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 4,
+                              ),
+                              leading: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: gradientStartBlue.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.bolt_rounded,
+                                  color: gradientStartBlue,
+                                ),
+                              ),
+                              title: Text(
+                                skillData['title'] ?? "Untitled",
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: textColor,
+                                ),
+                              ),
+                              subtitle: Text(
+                                "${skillData['category']} • ${skillData['level']}",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: secondaryText,
+                                ),
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.redAccent,
+                                ),
+                                onPressed: () => _deleteMarketplaceSkill(
+                                  skillDoc.id,
+                                  skillData['title'],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+
+                const SizedBox(height: 40),
+                if (isMe) ...[
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const HistoryScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const HistoryScreen(),
+                        ),
                       ),
-                      icon: const Icon(Icons.history_rounded, color: Colors.white),
+                      icon: const Icon(
+                        Icons.history_rounded,
+                        color: Colors.white,
+                      ),
                       label: const Text(
-                        "History",
+                        "Swap History",
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -288,15 +417,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  
                   const SizedBox(height: 16),
-
-                  // Logout Button
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () => _showLogoutDialog(context),
-                      icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                      icon: const Icon(
+                        Icons.logout_rounded,
+                        color: Colors.redAccent,
+                      ),
                       label: const Text(
                         "Logout",
                         style: TextStyle(
@@ -389,16 +518,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: const StadiumBorder(),
+            ),
             onPressed: () async {
               await _auth.signOut();
-              if (mounted) {
+              if (mounted)
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (c) => const LoginScreen()),
                   (r) => false,
                 );
-              }
             },
             child: const Text("Logout", style: TextStyle(color: Colors.white)),
           ),
@@ -475,12 +606,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextField(
               controller: controller,
               maxLines: 4,
-              style: const TextStyle(color: Colors.black87),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: softBlueBg,
                 hintText: "Write something about yourself...",
-                hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
                   borderSide: BorderSide.none,
@@ -545,7 +674,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               Text(
-                "Manage Skills",
+                "Manage Skills Summary",
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -558,19 +687,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: TextField(
                       controller: controller,
-                      style: const TextStyle(color: Colors.black87),
                       decoration: InputDecoration(
                         hintText: "Add skill (e.g. Figma)",
-                        hintStyle: const TextStyle(color: Colors.grey),
                         filled: true,
                         fillColor: softBlueBg,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(15),
                           borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
                         ),
                       ),
                     ),
@@ -610,10 +733,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         (s) => Chip(
                           label: Text(
                             s,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: const TextStyle(color: Colors.white),
                           ),
                           backgroundColor: primaryDarkPurple,
                           deleteIcon: const Icon(
