@@ -79,6 +79,12 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           });
 
       _showSnackBar("Account created successfully!", Colors.green);
+
+      
+      if (mounted) {
+        Navigator.pop(context); 
+      }
+
     } on FirebaseAuthException catch (e) {
       _showSnackBar(e.message ?? "An error occurred", Colors.red);
     } catch (e) {
@@ -282,8 +288,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 height: 55,
                 child: OutlinedButton(
                   onPressed: () {
-                    print("Sign In Pressed");
-                    // TODO: Navigate to Sign In Screen
+                    
+                    Navigator.pop(context);
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: gradientStart,
