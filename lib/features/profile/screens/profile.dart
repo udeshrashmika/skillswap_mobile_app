@@ -63,33 +63,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) Navigator.pop(context);
   }
 
+  
   void _deleteMarketplaceSkill(String docId, String title) {
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
+        backgroundColor: Colors.white, // Forces background to white
+        surfaceTintColor: Colors.white, // Removes Material 3 automatic tint
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           "Remove Skill",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: textColor, // Ensures title is visible
+          ),
         ),
         content: Text(
           "Are you sure you want to stop sharing '$title' in the marketplace?",
+          style: GoogleFonts.poppins(color: textColor),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c),
-            child: const Text("Cancel"),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: secondaryText),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               shape: const StadiumBorder(),
+              elevation: 0,
             ),
             onPressed: () async {
               await _firestore.collection('skills').doc(docId).delete();
               if (mounted) Navigator.pop(c);
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+            child: const Text(
+              "Delete", 
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+            ),
           ),
         ],
       ),
@@ -509,6 +523,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (c) => AlertDialog(
         backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Logout"),
         content: const Text("Are you sure you want to exit?"),
