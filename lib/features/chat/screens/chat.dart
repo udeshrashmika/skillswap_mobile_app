@@ -106,6 +106,50 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  void clearChat() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          "Clear Chat",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          "Are you sure you want to delete all messages? This cannot be undone.",
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              "Cancel",
+              style: GoogleFonts.poppins(color: secondaryText),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+
+              var snapshots = await FirebaseFirestore.instance
+                  .collection('chats')
+                  .doc(chatRoomId)
+                  .collection('messages')
+                  .get();
+
+              for (var doc in snapshots.docs) {
+                await doc.reference.delete();
+              }
+            },
+            child: Text(
+              "Clear All",
+              style: GoogleFonts.poppins(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -161,6 +205,16 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ],
         ),
+
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.delete_sweep_rounded,
+              color: Colors.redAccent,
+            ),
+            onPressed: clearChat,
+          ),
+        ],
       ),
       body: Column(
         children: [
