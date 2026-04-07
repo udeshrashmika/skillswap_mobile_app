@@ -70,13 +70,19 @@ class _ChatScreenState extends State<ChatScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           "Delete Message",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
         ),
         content: Text(
           "Are you sure you want to delete this message?",
-          style: GoogleFonts.poppins(),
+          style: GoogleFonts.poppins(color: textColor),
         ),
         actions: [
           TextButton(
@@ -110,13 +116,19 @@ class _ChatScreenState extends State<ChatScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           "Clear Chat",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
         ),
         content: Text(
           "Are you sure you want to delete all messages? This cannot be undone.",
-          style: GoogleFonts.poppins(),
+          style: GoogleFonts.poppins(color: textColor),
         ),
         actions: [
           TextButton(
