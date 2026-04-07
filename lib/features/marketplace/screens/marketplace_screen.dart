@@ -345,7 +345,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   Widget _buildTeacherTile(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-    String name = data['name'] ?? 'User';
+    String name =
+        data['name'] ?? data['displayName'] ?? data['email'] ?? 'New Member';
+
     String university = data['university'] ?? 'SkillSwap Student';
     String profileImg =
         data['profileImageUrl'] ?? 'https://ui-avatars.com/api/?name=$name';
