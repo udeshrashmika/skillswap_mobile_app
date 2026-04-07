@@ -60,34 +60,6 @@ class _MessageScreenState extends State<MessageScreen> {
             fontSize: 22,
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
-              child: IconButton(
-                onPressed: () async {
-                  await FirebaseAuth.instance.signOut();
-                  if (mounted) Navigator.pop(context);
-                },
-                icon: const Icon(
-                  Icons.logout_rounded,
-                  color: textColor,
-                  size: 20,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       body: Column(
         children: [
