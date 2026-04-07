@@ -254,17 +254,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Text("No skills added yet.")
                       else
                         ...skills.map((s) => _buildSkillChip(s)),
-                      if (isMe) _buildHistoryButton(),
                     ],
                   ),
                 ),
 
                 if (isMe) ...[
-                  const SizedBox(height: 45),
+                  const SizedBox(height: 40),
+                  
+                  // History Button
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton(
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HistoryScreen()),
+                      ),
+                      icon: const Icon(Icons.history_rounded, color: Colors.white),
+                      label: const Text(
+                        "History",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryDarkPurple,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+
+                  // Logout Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
                       onPressed: () => _showLogoutDialog(context),
+                      icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                      label: const Text(
+                        "Logout",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.redAccent,
                         side: const BorderSide(
@@ -274,13 +313,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
-                        ),
-                      ),
-                      child: const Text(
-                        "Logout",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
                         ),
                       ),
                     ),
@@ -339,38 +371,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryButton() {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const HistoryScreen()),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: primaryDarkPurple.withOpacity(0.3)),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.history_rounded, color: primaryDarkPurple, size: 18),
-            SizedBox(width: 6),
-            Text(
-              "History",
-              style: TextStyle(
-                color: primaryDarkPurple,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
