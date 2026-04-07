@@ -67,7 +67,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ),
             ),
           ),
-
           SizedBox(
             height: 100,
             child: ListView(
@@ -82,12 +81,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ],
             ),
           ),
-
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Divider(color: Color(0xFFE2E8F0)),
           ),
-
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -192,7 +189,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                 ],
               ),
-
               child: Center(
                 child: FaIcon(
                   icon,
@@ -274,7 +270,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-
                   if (userId != null)
                     FutureBuilder<DocumentSnapshot>(
                       future: FirebaseFirestore.instance
@@ -286,85 +281,97 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             ConnectionState.waiting) {
                           return const SizedBox(height: 20);
                         }
+
+                        String publisherName = 'User';
+                        String userRating = 'New';
+
                         if (userSnapshot.hasData && userSnapshot.data!.exists) {
                           final userData =
                               userSnapshot.data!.data() as Map<String, dynamic>;
-                          final publisherName = userData['fullName'] ?? 'User';
-
-                          return Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 10,
-                                backgroundColor: lavenderAccent.withOpacity(
-                                  0.15,
-                                ),
-                                child: const Icon(
-                                  Icons.person_rounded,
-                                  size: 13,
-                                  color: lavenderAccent,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  publisherName,
-                                  style: GoogleFonts.poppins(
-                                    color: secondaryText,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          );
+                          publisherName =
+                              userData['fullName'] ??
+                              userData['name'] ??
+                              'User';
+                          userRating = userData['rating']?.toString() ?? 'New';
                         }
-                        return const SizedBox.shrink();
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 10,
+                                  backgroundColor: lavenderAccent.withOpacity(
+                                    0.15,
+                                  ),
+                                  child: const Icon(
+                                    Icons.person_rounded,
+                                    size: 13,
+                                    color: lavenderAccent,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    publisherName,
+                                    style: GoogleFonts.poppins(
+                                      color: secondaryText,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                skillData['category'] ?? 'General',
+                                style: GoogleFonts.poppins(
+                                  color: secondaryText,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.star_rounded,
+                                  color: Colors.orange,
+                                  size: 16,
+                                ),
+                                Text(
+                                  " $userRating",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
                       },
-                    ),
-
-                  const SizedBox(height: 6),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      skillData['category'] ?? 'General',
-                      style: GoogleFonts.poppins(
-                        color: secondaryText,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  Row(
-                    children: const [
-                      Icon(Icons.star_rounded, color: Colors.orange, size: 16),
-                      Text(
-                        " 4.8",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+                    )
+                  else
+                    const SizedBox.shrink(),
                 ],
               ),
             ),
-
             const SizedBox(width: 10),
-
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
