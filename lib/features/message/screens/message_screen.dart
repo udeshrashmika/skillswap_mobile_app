@@ -120,7 +120,6 @@ class _MessageScreenState extends State<MessageScreen> {
                   ),
                   border: InputBorder.none,
                   icon: const Icon(Icons.search, color: lavenderAccent),
-
                   suffixIcon: searchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(
@@ -144,221 +143,298 @@ class _MessageScreenState extends State<MessageScreen> {
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
-                  .collection('users')
+                  .collection('requests')
+                  .where('receiverId', isEqualTo: currentUserId)
+                  .where('status', isEqualTo: 'accepted')
                   .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: lavenderAccent),
-                  );
-                }
+              builder: (context, receivedSnap) {
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('requests')
+                      .where('senderId', isEqualTo: currentUserId)
+                      .where('status', isEqualTo: 'accepted')
+                      .snapshots(),
+                  builder: (context, sentSnap) {
+                    if (receivedSnap.connectionState ==
+                            ConnectionState.waiting ||
+                        sentSnap.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: lavenderAccent),
+                      );
+                    }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      "No friends found.",
-                      style: GoogleFonts.poppins(color: secondaryText),
-                    ),
-                  );
-                }
+                    Set<String> connectedUserIds = {};
 
-                var users = snapshot.data!.docs.where((doc) {
-                  if (doc.id == currentUserId) return false;
+                    if (receivedSnap.hasData) {
+                      for (var doc in receivedSnap.data!.docs) {
+                        var data = doc.data() as Map<String, dynamic>;
+                        if (data['senderId'] != null) {
+                          connectedUserIds.add(data['senderId']);
+                        }
+                      }
+                    }
 
-                  var userData = doc.data() as Map<String, dynamic>;
-                  String name = (userData['fullName'] ?? 'Unknown User')
-                      .toString()
-                      .toLowerCase();
+                    if (sentSnap.hasData) {
+                      for (var doc in sentSnap.data!.docs) {
+                        var data = doc.data() as Map<String, dynamic>;
+                        if (data['receiverId'] != null) {
+                          connectedUserIds.add(data['receiverId']);
+                        }
+                      }
+                    }
 
-                  if (searchQuery.isEmpty) {
-                    return true;
-                  } else {
-                    return name.contains(searchQuery);
-                  }
-                }).toList();
-
-                if (users.isEmpty) {
-                  return Center(
-                    child: Text(
-                      "No users match your search.",
-                      style: GoogleFonts.poppins(color: secondaryText),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: users.length,
-                  itemBuilder: (context, index) {
-                    var userData = users[index].data() as Map<String, dynamic>;
-                    String peerId = users[index].id;
-                    String name = userData['fullName'] ?? 'Unknown User';
-                    String image = userData['profileImageUrl'] ?? '';
-                    String chatRoomId = getChatRoomId(currentUserId, peerId);
+                    if (connectedUserIds.isEmpty) {
+                      return Center(
+                        child: Text(
+                          "No accepted requests yet.",
+                          style: GoogleFonts.poppins(color: secondaryText),
+                        ),
+                      );
+                    }
 
                     return StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
-                          .collection('chats')
-                          .doc(chatRoomId)
-                          .collection('messages')
-                          .orderBy('time', descending: true)
+                          .collection('users')
                           .snapshots(),
-                      builder: (context, chatSnapshot) {
-                        String lastMessage = "Tap to chat";
-                        String lastTime = "";
-                        int unreadCount = 0;
-
-                        if (chatSnapshot.hasData &&
-                            chatSnapshot.data!.docs.isNotEmpty) {
-                          var docs = chatSnapshot.data!.docs;
-                          var lastDoc =
-                              docs.first.data() as Map<String, dynamic>;
-
-                          lastMessage = lastDoc['text'] ?? "Photo/Attachment";
-                          if (lastDoc['time'] != null) {
-                            lastTime = DateFormat(
-                              'hh:mm a',
-                            ).format((lastDoc['time'] as Timestamp).toDate());
-                          }
-
-                          for (var doc in docs) {
-                            var data = doc.data() as Map<String, dynamic>;
-                            if (data['senderId'] == peerId &&
-                                data['isRead'] == false) {
-                              unreadCount++;
-                            }
-                          }
+                      builder: (context, userSnap) {
+                        if (userSnap.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: lavenderAccent,
+                            ),
+                          );
                         }
 
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatScreen(
-                                  peerId: peerId,
-                                  name: name,
-                                  image: image,
-                                  currentUserId: currentUserId,
-                                ),
-                              ),
+                        if (!userSnap.hasData || userSnap.data!.docs.isEmpty) {
+                          return Center(
+                            child: Text(
+                              "No users found.",
+                              style: GoogleFonts.poppins(color: secondaryText),
+                            ),
+                          );
+                        }
+
+                        var users = userSnap.data!.docs.where((doc) {
+                          if (doc.id == currentUserId) return false;
+
+                          if (!connectedUserIds.contains(doc.id)) return false;
+
+                          var userData = doc.data() as Map<String, dynamic>;
+                          String name = (userData['fullName'] ?? 'Unknown User')
+                              .toString()
+                              .toLowerCase();
+
+                          if (searchQuery.isEmpty) {
+                            return true;
+                          } else {
+                            return name.contains(searchQuery);
+                          }
+                        }).toList();
+
+                        if (users.isEmpty) {
+                          return Center(
+                            child: Text(
+                              "No messages found.",
+                              style: GoogleFonts.poppins(color: secondaryText),
+                            ),
+                          );
+                        }
+
+                        return ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: users.length,
+                          itemBuilder: (context, index) {
+                            var userData =
+                                users[index].data() as Map<String, dynamic>;
+                            String peerId = users[index].id;
+                            String name =
+                                userData['fullName'] ?? 'Unknown User';
+                            String image = userData['profileImageUrl'] ?? '';
+                            String chatRoomId = getChatRoomId(
+                              currentUserId,
+                              peerId,
+                            );
+
+                            return StreamBuilder<QuerySnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('chats')
+                                  .doc(chatRoomId)
+                                  .collection('messages')
+                                  .orderBy('time', descending: true)
+                                  .snapshots(),
+                              builder: (context, chatSnapshot) {
+                                String lastMessage = "Tap to chat";
+                                String lastTime = "";
+                                int unreadCount = 0;
+
+                                if (chatSnapshot.hasData &&
+                                    chatSnapshot.data!.docs.isNotEmpty) {
+                                  var docs = chatSnapshot.data!.docs;
+                                  var lastDoc =
+                                      docs.first.data() as Map<String, dynamic>;
+
+                                  lastMessage =
+                                      lastDoc['text'] ?? "Photo/Attachment";
+                                  if (lastDoc['time'] != null) {
+                                    lastTime = DateFormat('hh:mm a').format(
+                                      (lastDoc['time'] as Timestamp).toDate(),
+                                    );
+                                  }
+
+                                  for (var doc in docs) {
+                                    var data =
+                                        doc.data() as Map<String, dynamic>;
+                                    if (data['senderId'] == peerId &&
+                                        data['isRead'] == false) {
+                                      unreadCount++;
+                                    }
+                                  }
+                                }
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ChatScreen(
+                                          peerId: peerId,
+                                          name: name,
+                                          image: image,
+                                          currentUserId: currentUserId,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 15),
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: const Color(0xFFF1F5F9),
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.02),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ListTile(
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                      leading: ClipRRect(
+                                        borderRadius: BorderRadius.circular(25),
+                                        child: image.isNotEmpty
+                                            ? Image.network(
+                                                image,
+                                                width: 50,
+                                                height: 50,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (c, e, s) =>
+                                                    Container(
+                                                      width: 50,
+                                                      height: 50,
+                                                      color: const Color(
+                                                        0xFFF1F5F9,
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.person,
+                                                        color: secondaryText,
+                                                      ),
+                                                    ),
+                                              )
+                                            : Container(
+                                                width: 50,
+                                                height: 50,
+                                                color: const Color(0xFFF1F5F9),
+                                                child: const Icon(
+                                                  Icons.person,
+                                                  color: secondaryText,
+                                                ),
+                                              ),
+                                      ),
+                                      title: Text(
+                                        name,
+                                        style: GoogleFonts.poppins(
+                                          color: textColor,
+                                          fontWeight: unreadCount > 0
+                                              ? FontWeight.bold
+                                              : FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      subtitle: Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 4.0,
+                                        ),
+                                        child: Text(
+                                          lastMessage,
+                                          style: GoogleFonts.poppins(
+                                            color: unreadCount > 0
+                                                ? textColor.withOpacity(0.8)
+                                                : secondaryText,
+                                            fontSize: 13,
+                                            fontWeight: unreadCount > 0
+                                                ? FontWeight.w500
+                                                : FontWeight.normal,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      trailing: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          if (lastTime.isNotEmpty)
+                                            Text(
+                                              lastTime,
+                                              style: GoogleFonts.poppins(
+                                                color: unreadCount > 0
+                                                    ? tealAccent
+                                                    : secondaryText.withOpacity(
+                                                        0.8,
+                                                      ),
+                                                fontSize: 11,
+                                                fontWeight: unreadCount > 0
+                                                    ? FontWeight.bold
+                                                    : FontWeight.normal,
+                                              ),
+                                            ),
+                                          const SizedBox(height: 5),
+                                          if (unreadCount > 0)
+                                            Container(
+                                              padding: const EdgeInsets.all(6),
+                                              decoration: const BoxDecoration(
+                                                color: tealAccent,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Text(
+                                                unreadCount.toString(),
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             );
                           },
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 15),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: const Color(0xFFF1F5F9),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.02),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              leading: ClipRRect(
-                                borderRadius: BorderRadius.circular(25),
-                                child: image.isNotEmpty
-                                    ? Image.network(
-                                        image,
-                                        width: 50,
-                                        height: 50,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (c, e, s) => Container(
-                                          width: 50,
-                                          height: 50,
-                                          color: const Color(0xFFF1F5F9),
-                                          child: const Icon(
-                                            Icons.person,
-                                            color: secondaryText,
-                                          ),
-                                        ),
-                                      )
-                                    : Container(
-                                        width: 50,
-                                        height: 50,
-                                        color: const Color(0xFFF1F5F9),
-                                        child: const Icon(
-                                          Icons.person,
-                                          color: secondaryText,
-                                        ),
-                                      ),
-                              ),
-                              title: Text(
-                                name,
-                                style: GoogleFonts.poppins(
-                                  color: textColor,
-                                  fontWeight: unreadCount > 0
-                                      ? FontWeight.bold
-                                      : FontWeight.w600,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
-                                child: Text(
-                                  lastMessage,
-                                  style: GoogleFonts.poppins(
-                                    color: unreadCount > 0
-                                        ? textColor.withOpacity(0.8)
-                                        : secondaryText,
-                                    fontSize: 13,
-                                    fontWeight: unreadCount > 0
-                                        ? FontWeight.w500
-                                        : FontWeight.normal,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              trailing: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  if (lastTime.isNotEmpty)
-                                    Text(
-                                      lastTime,
-                                      style: GoogleFonts.poppins(
-                                        color: unreadCount > 0
-                                            ? tealAccent
-                                            : secondaryText.withOpacity(0.8),
-                                        fontSize: 11,
-                                        fontWeight: unreadCount > 0
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
-                                  const SizedBox(height: 5),
-                                  if (unreadCount > 0)
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: const BoxDecoration(
-                                        color: tealAccent,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Text(
-                                        unreadCount.toString(),
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
                         );
                       },
                     );
