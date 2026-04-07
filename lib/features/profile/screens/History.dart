@@ -105,7 +105,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
         stream: FirebaseFirestore.instance
             .collection('requests')
             .where('senderId', isEqualTo: currentUserId)
-            .where('status', isEqualTo: 'completed')
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
