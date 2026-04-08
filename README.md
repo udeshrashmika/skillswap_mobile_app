@@ -1,17 +1,32 @@
-# skillswap
+SkillSwap 🚀
 
-A new Flutter project.
+SkillSwap is a peer-to-peer learning platform designed for university students to exchange knowledge. Whether you're a coding wizard, a design enthusiast, or a language lover, SkillSwap connects you with peers to trade skills in a collaborative environment.
+✨ Key Features
 
-## Getting Started
+    Skill Marketplace: Browse featured skills across categories like Coding, Design, Music, and Art.
 
-This project is a starting point for a Flutter application.
+    Real-time Swap Requests: Send and receive swap requests instantly with Firestore-backed synchronization.
 
-A few resources to get you started if this is your first Flutter project:
+    Smart Profile Management:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+        Showcase your skills and university background.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+        Track your "Swap History" and view ratings.
+
+        Manage your active marketplace posts (add, view, and delete).
+
+    Rating System: Rate your learning sessions to build a trusted community of student experts.
+
+    Modern UI: A clean, responsive interface built with Flutter and Poppins typography.
+
+🛠️ Tech Stack
+
+    Frontend: Flutter (Null-safe, Material 3)
+
+    Backend: Firebase
+
+        Cloud Firestore: Real-time NoSQL database for users, skills, and requests.
+
+        Firebase Auth: Secure user authentication.
+
+    State Management: Streams and StreamBuilders for real-time UI updates.
